@@ -1,4 +1,6 @@
 // import { StatusBar } from "expo-status-bar";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { json } from "d3";
 import React, { useEffect, useState } from "react";
 import {
   Button,
@@ -6,12 +8,13 @@ import {
   StyleSheet,
   Text,
   StatusBar,
+  FlatList,
+  Dimensions,
 } from "react-native";
 import Bible from "./Bible";
+// import Carousel from "react-native-reanimated-carousel";
 
 export default function App() {
-  const [data, setData] = useState("");
-
   const [books, setBooks] = useState([
     "Genesis",
     "Exodus",
@@ -81,25 +84,76 @@ export default function App() {
     "Revelation",
   ]);
 
-  // console.log(StatusBar.currentHeight);
+  const [tabs, setTabs] = useState([]);
+
+  useEffect(() => {
+    // AsyncStorage.clear();
+    AsyncStorage.getItem("tabs").then((tabsFS) => {
+      const tabsJson = JSON.parse(tabsFS);
+      if (tabsJson) {
+        setTabs(JSON.parse(tabsFS));
+      } else {
+        // const blankTabs = [{ reference: "0,1,1", name: "" }];
+        const blankTabs = [
+          { reference: "0,1,1", name: "" },
+          { reference: "1,2,2", name: "" },
+          { reference: "2,1,1", name: "" },
+          { reference: "3,1,1", name: "" },
+        ];
+        setTabs(blankTabs);
+        AsyncStorage.setItem("tabs", JSON.stringify(blankTabs));
+      }
+    });
+  }, []);
+
+  const renderBible = (tab, index) => {
+    tab = tab.item;
+    const book = tab.reference.split(",")[0];
+    const chapter = tab.reference.split(",")[1];
+    const verse = tab.reference.split(",")[2];
+    return (
+      <Bible
+        index={index}
+        book={book}
+        chapter={chapter}
+        verse={verse}
+        key={index}
+      />
+    );
+  };
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* <Text>
-        Open up App.js to start working on your app! please do so now
-        as;ldfkjas;ldkfjas;ldkfj as;ldkfjasd ;lfkjs adf;lsakdjf s;aldkfj
-        asd;lfkasj ;sldkfj as;ldkfj a;sldkfj as;dlkfj as;ldkfj as;lkdjf ;asldkjf
-        ;asldkjf ;asldkfj{" "}
-      </Text> */}
-      <Bible
-        storageKey={"1"}
-        book={books.indexOf("Exodus")}
-        chapter={15}
-        verse={5}
-      />
-      {/* {data.length > 0 ? data : null} */}
-      {/* <Button onPress={loadFile} title="load file" /> */}
-      {/* <StatusBar style="auto" /> */}
+      {tabs.length > 0 ? (
+        <FlatList
+          data={tabs}
+          renderItem={renderBible}
+          horizontal={true}
+          snapToStart={true}
+          snapToOffsets={[
+            Dimensions.get("window").width,
+            Dimensions.get("window").width,
+            Dimensions.get("window").width,
+            Dimensions.get("window").width,
+          ]}
+        />
+      ) : null}
+      {/* {tabs.length > 0
+        ? tabs.map((tab, index) => {
+            const book = tab.reference.split(",")[0];
+            const chapter = tab.reference.split(",")[1];
+            const verse = tab.reference.split(",")[2];
+            return (
+              <Bible
+                index={index}
+                book={book}
+                chapter={chapter}
+                verse={verse}
+                key={index}
+              />
+            );
+          })
+        : null} */}
     </SafeAreaView>
   );
 }
@@ -110,7 +164,7 @@ const styles = StyleSheet.create({
     // justifyContent: "center",
     // alignItems: "center",
     // backgroundColor: "orange",
-    padding: 12,
+    // padding: 12,
     paddingBottom: 0,
     paddingTop: StatusBar.currentHeight,
     // flex: 1

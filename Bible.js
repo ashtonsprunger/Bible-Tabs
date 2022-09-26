@@ -7,6 +7,7 @@ import {
   Header,
   FlatList,
   Button,
+  Dimensions,
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
@@ -111,73 +112,72 @@ export default function Bible(props) {
   );
 
   const scrollToVerse = () => {
-    // window.setTimeout(() => {
+    // getReference().then((storedReference) => {
+    //   if (storedReference) {
+    //     const book = storedReference.reference.split(",")[0];
+    //     const chapter = storedReference.reference.split(",")[1];
+    //     const verse = storedReference.reference.split(",")[2];
+    //     const storedIndex = getVerseNumber(book, chapter, verse, bookData);
+    //     ref.current.scrollToIndex({ index: storedIndex, animated: false });
+    //     console.log("3");
+    //   } else {
     ref.current.scrollToIndex({ index: index, animated: false });
     console.log("hello?");
+    console.log("4");
+    //   }
+    // });
+    // window.setTimeout(() => {
     // }, 5000);
   };
-  useEffect(() => {
-    console.log("old::", getReference());
-    // console.log(require("./data.json").length);
-    // setData(require("./data.json"));
-    // console.log(props);
-    // console.log(books.length);
-    window.setTimeout(() => {
-      // console.log(getVerseNumber(65, 22, 21));
-      // setShowData(data);
-      // scrollToIndex(3);
-    }, 1500);
-    // window.setTimeout(() => {
-    //   let scrollElement = document.getElementById(
-    //     `${props.book},${props.chapter},${props.verse}`
-    //   ).offsetTop;
-    //   console.log("scroll:", scrollElement);
-    //   window.scrollTo({ top: scrollElement + 100, behavior: "instant" });
-    // }, 500);
-    // window.setTimeout(() => {
-    //   ref.current.scrollTo(50);
-    // }, 500);
-  }, []);
+  useEffect(() => {}, []);
 
   const itemChange = (items) => {
-    // console.log("key:", items.viewableItems[0].key);
     if (items.viewableItems.length != 0) {
-      console.log("items:");
-      console.log(items.viewableItems[0].key);
       updateReference(items.viewableItems[0].key);
-      // updateReference("testing...");
     }
-    // console.log("changed:", items.viewableItems);
-    // console.log("keys:", Object.keys(items));
   };
 
   const updateReference = async (newReference) => {
     try {
-      let oldData;
-      let newData;
-      console.log("json:", newReference);
-      if (getReference()) {
-        oldData = getReference();
-        console.log("oldData:", oldData);
-        oldData.reference = newReference;
-      }
-      if (oldData) {
-        newData = oldData;
-      } else {
-        newData = { reference: newReference };
-      }
-      console.log("newData:", newData);
-      const jsonValue = JSON.stringify(newData);
-      await AsyncStorage.setItem(props.storageKey, jsonValue);
+      // let oldData;
+      // let newData;
+      AsyncStorage.getItem("tabs")
+        .then((tabs) => {
+          // console.log("OLD:", data);
+          // if (data) {
+          //   oldData = data;
+          //   console.log("oldData:", oldData);
+          //   oldData.reference = newReference;
+          //   console.log("5");
+          // }
+          // if (oldData) {
+          //   // if not our first time saving
+          //   newData = oldData;
+          //   console.log("1");
+          // } else {
+          //   // if we've saved before
+          //   newData = { reference: newReference };
+          //   console.log("2");
+          // }
+          // console.log("newData:", newData);
+          // const jsonValue = JSON.stringify(newData);
+          tabs = JSON.parse(tabs);
+          tabs[props.index].reference = newReference;
+          AsyncStorage.setItem("tabs", JSON.stringify(tabs));
+        })
+        .catch(console.log);
     } catch (e) {
       console.log("SAVING ERROR!!!", e);
     }
   };
   const getReference = async () => {
     try {
-      const value = await AsyncStorage.getItem(props.storageKey);
-      if (value !== null) {
-        return JSON.parse(value);
+      const tabs = await AsyncStorage.getItem("tabs");
+      if (tabs !== null) {
+        console.log("VALUE:", value);
+        return JSON.parse(tabs[props.index].reference);
+      } else {
+        console.log("value is null!");
       }
     } catch (e) {
       console.log("READING ERROR!!!");
@@ -190,7 +190,7 @@ export default function Bible(props) {
   const renderItem = (item) => {
     return (
       <Text>
-        {item.item[1] == 1 && item.item[2] == 1 ? (
+        {item.item[1] == 1 && item.item[2] == 1 && item.item[0] != 0 ? (
           <Button
             onPress={() => console.log("123")}
             title={books[props.book - 1]}
@@ -217,52 +217,13 @@ export default function Bible(props) {
   // };
 
   return (
-    // <Text>hello</Text>
-    // <ScrollView>
-    //   <Text>
-    //     {data != null
-    //       ? data.slice(startVerse, startVerse + numOfVerses).map((verse) => {
-    //           if (!verse) {
-    //             return null;
-    //           }
-    //           return (
-    //             <Text
-    //               id={`${verse[0]},${verse[1]},${verse[2]}`}
-    //               key={`${verse[0]},${verse[1]},${verse[2]}`}
-    //             >
-    //               {/* if the loop is on the first verse */}
-    //               {verse[2] == 1 ? (
-    //                 <>
-    //                   <Text style={{ fontSize: 30, color: "#0051ff" }}>
-    //                     {/* if we are at the beginning of a book */}
-    //                     {verse[1] == 1 && verse[2] == 1 ? (
-    //                       <>
-    //                         {/* <Text
-    //                       > */}
-    //                         {/* book */}
-    //                         {books[verse[0]]}
-    //                         {/* </Text> */}
-    //                       </>
-    //                     ) : null}
-    //                     {/* chapter */} {verse[1]}
-    //                   </Text>
-    //                 </>
-    //               ) : null}
-    //               <Text style={{ color: "#0051ff" }}>
-    //                 {" "}
-    //                 {/* verse number if not first verse in chapter */}
-    //                 {verse[2] != "1" ? verse[2] : null}
-    //               </Text>{" "}
-    //               {/* verse text */}
-    //               {verse[3]}{" "}
-    //             </Text>
-    //           );
-    //         })
-    //       : null}
-    //   </Text>
-    // </ScrollView>
-
-    <View>
+    <View
+      style={{
+        width: Dimensions.get("window").width,
+        paddingRight: 12,
+        paddingLeft: 12,
+      }}
+    >
       <FlatList
         onTouchEnd={() => {
           console.log("testing?");
