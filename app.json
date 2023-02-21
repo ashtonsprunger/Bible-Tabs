@@ -1,12 +1,11 @@
 {
   "expo": {
-    "name": "Esv Bible",
+    "name": "Bible Tabs",
     "slug": "EsvBible",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "splash": {
-      "image": "./assets/splash.png",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
@@ -20,14 +19,26 @@
       "supportsTablet": true
     },
     "android": {
-      "package":"ashtonsprunger.esvbible",
+      "package": "ashtonsprunger.bibletabs",
+      "versionCode": 1,
       "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
+        "foregroundImage": "./assets/icon.png",
         "backgroundColor": "#FFFFFF"
+      },
+      "config": {
+        "googleMobileAdsAppId": "ca-app-pub-2469761428575146~6718162415"
       }
     },
     "web": {
-      "favicon": "./assets/favicon.png"
+      "favicon": "./assets/icon.png"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "f59841a3-82e5-4327-9ca1-9d1f3d73acd0"
+      }
     }
+  },
+  "react-native-google-mobile-ads": {
+    "android_app_id": "ca-app-pub-2469761428575146~6718162415"
   }
 }

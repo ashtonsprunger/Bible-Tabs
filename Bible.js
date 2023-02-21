@@ -21,12 +21,27 @@ export default function Bible(props) {
     return data.indexOf(verse);
   };
 
+  const getVerseByIndex = (index, data) => {
+    return data[index];
+  };
+
+  const getNextVerse = (book, chapter, verseNum, data) => {
+    return data[getVerseNumber(book, chapter, verseNum, data) + 1];
+  };
+
   const getBookVerses = (book, data) => {
     return data.filter((verse) => verse[0] == book);
   };
 
+  const getChapterVerses = (book, chapter, data) => {
+    return getBookVerses(book, data).filter((verse) => verse[1] == chapter);
+  };
+
   const [data, setData] = useState(require("./data.json"));
-  const [bookData, setBookData] = useState(getBookVerses(props.book, data));
+  // const [bookData, setBookData] = useState(getBookVerses(props.book, data));
+  const [chapterData, setChapterData] = useState(
+    getChapterVerses(props.book, props.chapter, data)
+  );
 
   // const [showData, setShowData] = useState(
   //   data.slice(getVerseNumber(props.book, props.chapter, props.verse, data))
@@ -108,7 +123,7 @@ export default function Bible(props) {
     "Revelation",
   ]);
   const [index, setIndex] = useState(
-    getVerseNumber(props.book, props.chapter, props.verse, bookData)
+    getVerseNumber(props.book, props.chapter, props.verse, chapterData)
   );
 
   const scrollToVerse = () => {
@@ -122,8 +137,6 @@ export default function Bible(props) {
     //     console.log("3");
     //   } else {
     ref.current.scrollToIndex({ index: index, animated: false });
-    console.log("hello?");
-    console.log("4");
     //   }
     // });
     // window.setTimeout(() => {
@@ -133,9 +146,18 @@ export default function Bible(props) {
 
   const itemChange = (items) => {
     if (items.viewableItems.length != 0) {
+      props.updateTab(props.index, items.viewableItems[0].key);
       updateReference(items.viewableItems[0].key);
     }
   };
+
+  const onViewableItemsChanged = ({ viewableItems }) => {
+    if (viewableItems.length != 0) {
+      props.updateTab(props.index, viewableItems[0].key);
+      updateReference(viewableItems[0].key);
+    }
+  };
+  const viewabilityConfigCallbackPairs = useRef([{ onViewableItemsChanged }]);
 
   const updateReference = async (newReference) => {
     try {
@@ -163,6 +185,7 @@ export default function Bible(props) {
           // const jsonValue = JSON.stringify(newData);
           tabs = JSON.parse(tabs);
           tabs[props.index].reference = newReference;
+          console.log(tabs);
           AsyncStorage.setItem("tabs", JSON.stringify(tabs));
         })
         .catch(console.log);
@@ -184,30 +207,109 @@ export default function Bible(props) {
     }
   };
 
+  const previousChapter = () => {
+    const currentVerse = chapterData[0];
+
+    let newBook;
+    let newChapter;
+
+    if (currentVerse[1] == 1) {
+      newBook = currentVerse[0] - 1;
+      newChapter = getBookVerses(newBook, data)[
+        getBookVerses(newBook, data).length - 1
+      ][1];
+    } else {
+      newBook = currentVerse[0];
+      newChapter = currentVerse[1] - 1;
+    }
+
+    ref.current.scrollToIndex({ index: 0, animated: true });
+
+    setChapterData(getChapterVerses(newBook, newChapter, data));
+    setTimeout(() => {
+      props.updateLocalTabs();
+    }, 200);
+  };
+
+  const nextChapter = () => {
+    const currentVerse = chapterData[0];
+
+    let newBook;
+    let newChapter;
+
+    if (
+      currentVerse[1] ==
+      getBookVerses(currentVerse[0], data)[
+        getBookVerses(currentVerse[0], data).length - 1
+      ][1]
+    ) {
+      newBook = Number(currentVerse[0]) + 1;
+      newChapter = 1;
+    } else {
+      newBook = currentVerse[0];
+      newChapter = Number(currentVerse[1]) + 1;
+    }
+
+    ref.current.scrollToIndex({ index: 0, animated: true });
+
+    setChapterData(getChapterVerses(newBook, newChapter, data));
+    setTimeout(() => {
+      props.updateLocalTabs();
+    }, 200);
+  };
+
   const ref = useRef(FlatList);
   // console.log("ref:", ref);ll
 
   const renderItem = (item) => {
     return (
       <Text>
-        {item.item[1] == 1 && item.item[2] == 1 && item.item[0] != 0 ? (
+        {item.item[2] == 1 && !(item.item[0] == 0 && item.item[1] == 1) ? (
           <Button
-            onPress={() => console.log("123")}
-            title={books[props.book - 1]}
+            onPress={previousChapter}
+            title={
+              item.item[1] == 1
+                ? books[props.book - 1] +
+                  " " +
+                  getBookVerses(item.item[0] - 1, data)[
+                    getBookVerses(item.item[0] - 1, data).length - 1
+                  ][1]
+                : books[item.item[0]] + " " + String(item.item[1] - 1)
+            }
           />
         ) : null}
         <Text style={{ fontSize: 50 }}>
-          {item.item[1] == 1 && item.item[2] == 1
-            ? `\n${books[item.item[0]]}\n`
-            : null}
+          {item.item[2] == 1 ? `\n${books[item.item[0]]}\n` : null}
         </Text>
         <Text style={{ fontSize: 50 }}>
           {item.item[2] == 1 ? item.item[1] : null}
         </Text>
+        {item.item[2] == 1 ? <Text> </Text> : null}
         <Text style={{ color: "#0051ff", fontSize: 13 }}>
           {item.item[2] != 1 ? `${item.item[2]} ` : null}
         </Text>
         <Text style={{ fontSize: 18 }}>{item.item[3]}</Text>
+        {item.item[2] == chapterData[chapterData.length - 1][2] ? (
+          <>
+            {!(item.item[0] == 65 && item.item[1] == 22) ? (
+              <>
+                <Text>{"\n\n"}</Text>
+                <Button
+                  onPress={nextChapter}
+                  title={
+                    item.item[1] ==
+                    getBookVerses(item.item[0], data)[
+                      getBookVerses(item.item[0], data).length - 1
+                    ][1]
+                      ? books[Number(item.item[0]) + 1] + " " + 1
+                      : books[item.item[0]] + " " + (Number(item.item[1]) + 1)
+                  }
+                />
+              </>
+            ) : null}
+            <Text>{"\n\n\n\n\n"}</Text>
+          </>
+        ) : null}
       </Text>
     );
   };
@@ -219,18 +321,16 @@ export default function Bible(props) {
   return (
     <View
       style={{
-        width: Dimensions.get("window").width,
+        // width: Dimensions.get("window").width,
         paddingRight: 12,
         paddingLeft: 12,
+        backgroundColor: "white",
       }}
     >
       <FlatList
-        onTouchEnd={() => {
-          console.log("testing?");
-        }}
         ref={ref}
         // initialScrollIndex={index}
-        data={bookData}
+        data={chapterData}
         renderItem={renderItem}
         keyExtractor={(item) => `${item[0]},${item[1]},${item[2]}`}
         onLayout={scrollToVerse}
@@ -238,7 +338,8 @@ export default function Bible(props) {
         showsVerticalScrollIndicator={false}
         // onScroll={(e) => console.log(e.nativeEvent.contentOffset.x)}
         viewabilityConfig={{ itemVisiblePercentThreshold: 50 }}
-        onViewableItemsChanged={itemChange}
+        // onViewableItemsChanged={itemChange}
+        viewabilityConfigCallbackPairs={viewabilityConfigCallbackPairs.current}
       />
     </View>
   );

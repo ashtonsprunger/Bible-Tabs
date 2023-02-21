@@ -1,0 +1,333 @@
+[
+    {
+        "book": "Genesis",
+        "verses": 1533,
+        "chapters": 50,
+        "index": 0
+    },
+    {
+        "book": "Exodus",
+        "verses": 1213,
+        "chapters": 40, "index": 1
+    },
+    {
+        "book": "Leviticus",
+        "verses": 859,
+        "chapters": 27 , "index": 2
+    },
+    {
+        "book": "Numbers",
+        "verses": 1288,
+        "chapters": 36 , "index": 3
+    },
+    {
+        "book": "Deuteronomy",
+        "verses": 959,
+        "chapters": 34 , "index": 4
+    },
+    {
+        "book": "Joshua",
+        "verses": 658,
+        "chapters": 24 , "index": 5
+    },
+    {
+        "book": "Judges",
+        "verses": 618,
+        "chapters": 21 , "index": 6
+    },
+    {
+        "book": "Ruth",
+        "verses": 85,
+        "chapters": 4 , "index": 7
+    },
+    {
+        "book": "1 Samuel",
+        "verses": 810,
+        "chapters": 31 , "index": 8
+    },
+    {
+        "book": "2 Samuel",
+        "verses": 695,
+        "chapters": 24 , "index": 9
+    },
+    {
+        "book": "1 Kings",
+        "verses": 816,
+        "chapters": 22 , "index": 10
+    },
+    {
+        "book": "2 Kings",
+        "verses": 719,
+        "chapters": 25 , "index": 11
+    },
+    {
+        "book": "1 Chronicles",
+        "verses": 942,
+        "chapters": 29 , "index": 12
+    },
+    {
+        "book": "2 Chronicles",
+        "verses": 822,
+        "chapters": 36 , "index": 13
+    },
+    {
+        "book": "Ezra",
+        "verses": 280,
+        "chapters": 10 , "index": 14
+    },
+    {
+        "book": "Nehemiah",
+        "verses": 406,
+        "chapters": 13 , "index": 15
+    },
+    {
+        "book": "Esther",
+        "verses": 167,
+        "chapters": 10 , "index": 16
+    },
+    {
+        "book": "Job",
+        "verses": 1070,
+        "chapters": 42 , "index":17
+    },
+    {
+        "book": "Psalms",
+        "verses": 2461,
+        "chapters": 150 , "index":18
+    },
+    {
+        "book": "Proverbs",
+        "verses": 915,
+        "chapters": 31 , "index":19
+    },
+    {
+        "book": "Ecclesiastes",
+        "verses": 222,
+        "chapters": 12 , "index":20
+    },
+    {
+        "book": "Song of Solomon",
+        "verses": 117,
+        "chapters": 8 , "index":21
+    },
+    {
+        "book": "Isaiah",
+        "verses": 1292,
+        "chapters": 66 , "index":22
+    },
+    {
+        "book": "Jeremiah",
+        "verses": 1364,
+        "chapters": 52 , "index":23
+    },
+    {
+        "book": "Lamentations",
+        "verses": 154,
+        "chapters": 5 , "index":24
+    },
+    {
+        "book": "Ezekiel",
+        "verses": 1273,
+        "chapters": 48 , "index":25
+    },
+    {
+        "book": "Daniel",
+        "verses": 357,
+        "chapters": 12 , "index":26
+    },
+    {
+        "book": "Hosea",
+        "verses": 197,
+        "chapters": 14 , "index":27
+    },
+    {
+        "book": "Joel",
+        "verses": 73,
+        "chapters": 3 , "index":28
+    },
+    {
+        "book": "Amos",
+        "verses": 146,
+        "chapters": 9 , "index":29
+    },
+    {
+        "book": "Obadiah",
+        "verses": 21,
+        "chapters": 1 , "index":30
+    },
+    {
+        "book": "Jonah",
+        "verses": 48,
+        "chapters": 4 , "index":31
+    },
+    {
+        "book": "Micah",
+        "verses": 105,
+        "chapters": 7 , "index":32
+    },
+    {
+        "book": "Nahum",
+        "verses": 47,
+        "chapters": 3 , "index":33
+    },
+    {
+        "book": "Habakkuk",
+        "verses": 56,
+        "chapters": 3 , "index":34
+    },
+    {
+        "book": "Zephaniah",
+        "verses": 53,
+        "chapters": 3 , "index":35
+    },
+    {
+        "book": "Haggai",
+        "verses": 38,
+        "chapters": 2 , "index":36
+    },
+    {
+        "book": "Zechariah",
+        "verses": 211,
+        "chapters": 14 , "index":37
+    },
+    {
+        "book": "Malachi",
+        "verses": 55,
+        "chapters": 4 , "index":38
+    },
+    {
+        "book": "Matthew",
+        "verses": 1071,
+        "chapters": 28 , "index":39
+    },
+    {
+        "book": "Mark",
+        "verses": 678,
+        "chapters": 16 , "index":40
+    },
+    {
+        "book": "Luke",
+        "verses": 1151,
+        "chapters": 24 , "index":41
+    },
+    {
+        "book": "John",
+        "verses": 879,
+        "chapters": 21 , "index":42
+    },
+    {
+        "book": "Acts",
+        "verses": 1007,
+        "chapters": 28 , "index":43
+    },
+    {
+        "book": "Romans",
+        "verses": 433,
+        "chapters": 16 , "index":44
+    },
+    {
+        "book": "1 Corinthians",
+        "verses": 437,
+        "chapters": 16 , "index":45
+    },
+    {
+        "book": "2 Corinthians",
+        "verses": 257,
+        "chapters": 13  , "index":46
+    },
+    {
+        "book": "Galatians",
+        "verses": 149,
+        "chapters": 6 , "index":47
+    },
+    {
+        "book": "Ephesians",
+        "verses": 155,
+        "chapters": 6 , "index":48
+    },
+    {
+        "book": "Philippians",
+        "verses": 104,
+        "chapters": 4 , "index":49
+    },
+    {
+        "book": "Colossians",
+        "verses": 95,
+        "chapters": 4 , "index":50
+    },
+    {
+        "book": "1 Thessalonians",
+        "verses": 89,
+        "chapters": 5 , "index":51
+    },
+    {
+        "book": "2 Thessalonians",
+        "verses": 47,
+        "chapters": 3 , "index":52
+    },
+    {
+        "book": "1 Timothy",
+        "verses": 133,
+        "chapters": 6 , "index":53
+    },
+    {
+        "book": "2 Timothy",
+        "verses": 83,
+        "chapters": 4 , "index":54
+    },
+    {
+        "book": "Titus",
+        "verses": 46,
+        "chapters": 3 , "index":55
+    },
+    {
+        "book": "Philemon",
+        "verses": 25,
+        "chapters": 1 , "index":56
+    },
+    {
+        "book": "Hebrews",
+        "verses": 303,
+        "chapters": 13, "index":57
+    },
+    {
+        "book": "James",
+        "verses": 108,
+        "chapters": 5 , "index":58
+    },
+    {
+        "book": "1 Peter",
+        "verses": 105,
+        "chapters": 5 , "index":59
+    },
+    {
+        "book": "2 Peter",
+        "verses": 61,
+        "chapters": 3 , "index":60
+    },
+    {
+        "book": "1 John",
+        "verses": 105,
+        "chapters": 5 , "index":61
+    },
+    {
+        "book": "2 John",
+        "verses": 13,
+        "chapters": 1 , "index":62
+    },
+    {
+        "book": "3 John",
+        "verses": 14,
+        "chapters": 1 , "index":63
+    },
+    {
+        "book": "Jude",
+        "verses": 25,
+        "chapters": 1 , "index":64
+    },
+    {
+        "book": "Revelation",
+        "verses": 404,
+        "chapters": 22, "index":65
+    }
+]
