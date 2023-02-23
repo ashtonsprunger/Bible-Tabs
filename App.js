@@ -18,11 +18,12 @@ import Tab from "./Tab";
 // import Carousel from "react-native-reanimated-carousel";
 import { getNavigationBarHeight } from "react-native-android-navbar-height";
 import NewTab from "./NewTab";
-import {
-  BannerAd,
-  BannerAdSize,
-  TestIds,
-} from "react-native-google-mobile-ads";
+import Settings from "./Settings";
+// import {
+//   BannerAd,
+//   BannerAdSize,
+//   TestIds,
+// } from "react-native-google-mobile-ads";
 
 export default function App() {
   const [books, setBooks] = useState([
@@ -223,12 +224,10 @@ export default function App() {
           />
         ) : null;
       })}
-      {hideAd ? null : (
-        <BannerAd
-          unitId="ca-app-pub-2469761428575146/1250229229"
-          size={BannerAdSize.BANNER}
-        />
-      )}
+      {/* <BannerAd
+        unitId="ca-app-pub-2469761428575146/1250229229"
+        size={BannerAdSize.BANNER}
+      /> */}
     </SafeAreaView>
   );
 }
@@ -245,7 +244,7 @@ const styles = StyleSheet.create({
     // backgroundColor: "orange",
     // padding: 12,
     // paddingBottom: 50,
-    // paddingTop: StatusBar.currentHeight,
+    paddingTop: StatusBar.currentHeight,
     // backgroundColor: "black",
     // flex: 1
     // // fontFamily: "Arial, Helvetica, sans-serif",

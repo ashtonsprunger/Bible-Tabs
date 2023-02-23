@@ -12,6 +12,7 @@ import {
 } from "react-native";
 
 import Browser from "./Browser";
+import Settings from "./Settings";
 
 export default function Tab(props) {
   const [modalOpen, setModalOpen] = useState(false);
@@ -75,7 +76,11 @@ export default function Tab(props) {
 
   return (
     <>
-      <Modal visible={modalOpen} animationType="slide">
+      <Modal
+        visible={modalOpen}
+        animationType="slide"
+        onRequestClose={toggleOpen}
+      >
         <View
           // onPress={toggleOpen}
           style={{
@@ -84,17 +89,26 @@ export default function Tab(props) {
             height: "100%",
           }}
         >
-          <TextInput
-            style={{ fontSize: 35, marginBottom: 15 }}
-            value={tabName}
-            onChange={changeTabName}
-            placeholder={
-              props.books[props.tabs[props.index].reference.split(",")[0]] +
-              " " +
-              props.tabs[props.index].reference.split(",")[1]
-            }
-            selectTextOnFocus={true}
-          />
+          <View
+            style={{
+              flexDirection: "row",
+              justifyContent: "space-between",
+              width: "100%",
+            }}
+          >
+            <TextInput
+              style={{ fontSize: 35, marginBottom: 15, width: "85%" }}
+              value={tabName}
+              onChange={changeTabName}
+              placeholder={
+                props.books[props.tabs[props.index].reference.split(",")[0]] +
+                " " +
+                props.tabs[props.index].reference.split(",")[1]
+              }
+              selectTextOnFocus={true}
+            />
+            <Settings />
+          </View>
           <Browser
             books={props.books}
             reference={props.tabs[props.index].reference.split(",")}
