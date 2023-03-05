@@ -2,12 +2,14 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import React from "react";
 import { Pressable, StyleSheet, Text } from "react-native";
 
+const colors = require("./colors.json");
+
 export default function NewTab(props) {
   return (
     <Pressable
       style={{
         ...styles.tabButton,
-        backgroundColor: "black",
+        backgroundColor: colors.tab.background.inactive[props.theme],
       }}
       onPress={() => {
         AsyncStorage.getItem("tabs").then((data) => {
@@ -24,7 +26,7 @@ export default function NewTab(props) {
       <Text
         style={{
           ...styles.tabText,
-          color: "white",
+          color: colors.tab.text.inactive[props.theme],
         }}
       >
         +

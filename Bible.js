@@ -11,6 +11,8 @@ import {
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
+const colors = require("./colors.json");
+
 export default function Bible(props) {
   // gets the index of the verse in the data
   const getVerseNumber = (book, chapter, verseNum, data) => {
@@ -278,17 +280,19 @@ export default function Bible(props) {
             }
           />
         ) : null}
-        <Text style={{ fontSize: 50 }}>
+        <Text style={{ fontSize: 50, color: colors.bible.text[props.theme] }}>
           {item.item[2] == 1 ? `\n${books[item.item[0]]}\n` : null}
         </Text>
-        <Text style={{ fontSize: 50 }}>
+        <Text style={{ fontSize: 50, color: colors.bible.text[props.theme] }}>
           {item.item[2] == 1 ? item.item[1] : null}
         </Text>
         {item.item[2] == 1 ? <Text> </Text> : null}
         <Text style={{ color: "#0051ff", fontSize: 13 }}>
           {item.item[2] != 1 ? `${item.item[2]} ` : null}
         </Text>
-        <Text style={{ fontSize: 18 }}>{item.item[3]}</Text>
+        <Text style={{ fontSize: 18, color: colors.bible.text[props.theme] }}>
+          {item.item[3]}
+        </Text>
         {item.item[2] == chapterData[chapterData.length - 1][2] ? (
           <>
             {!(item.item[0] == 65 && item.item[1] == 22) ? (
@@ -324,7 +328,7 @@ export default function Bible(props) {
         // width: Dimensions.get("window").width,
         paddingRight: 12,
         paddingLeft: 12,
-        backgroundColor: "white",
+        backgroundColor: colors.bible.background[props.theme],
       }}
     >
       <FlatList

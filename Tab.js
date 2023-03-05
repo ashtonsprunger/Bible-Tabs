@@ -14,6 +14,8 @@ import {
 import Browser from "./Browser";
 import Settings from "./Settings";
 
+const colors = require("./colors.json");
+
 export default function Tab(props) {
   const [modalOpen, setModalOpen] = useState(false);
   const [tabName, setTabName] = useState(props.tabs[props.index].name);
@@ -127,7 +129,10 @@ export default function Tab(props) {
       <Pressable
         style={{
           ...styles.tabButton,
-          backgroundColor: props.index == props.currentTab ? "white" : "black",
+          backgroundColor:
+            props.index == props.currentTab
+              ? colors.tab.background.active[props.theme]
+              : colors.tab.background.inactive[props.theme],
         }}
         onPress={() => {
           props.updateLocalTabs();
@@ -141,7 +146,10 @@ export default function Tab(props) {
         <Text
           style={{
             ...styles.tabText,
-            color: props.index == props.currentTab ? "black" : "white",
+            color:
+              props.index == props.currentTab
+                ? colors.tab.text.active[props.theme]
+                : colors.tab.text.inactive[props.theme],
           }}
         >
           {props.tabs[props.index].name

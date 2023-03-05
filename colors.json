@@ -1,0 +1,34 @@
+{
+    "tab":{
+        "text":{
+            "active":{
+                "light": "black",
+                "dark": "white"
+            },
+            "inactive":{
+                "light": "#474747",
+                "dark": "#e6e6e6"
+            }
+        },
+        "background":{
+            "active":{
+                "light": "white",
+                "dark": "black"
+            },
+            "inactive":{
+                "light": "#ebebeb",
+                "dark": "#292929"
+            }
+        }
+    },
+    "bible":{
+        "text":{
+            "light": "black",
+            "dark": "white"
+        },
+        "background":{
+            "light": "white",
+            "dark": "black"
+        }
+    }
+}

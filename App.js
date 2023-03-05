@@ -25,6 +25,8 @@ import Settings from "./Settings";
 //   TestIds,
 // } from "react-native-google-mobile-ads";
 
+const colors = require("./colors.json");
+
 export default function App() {
   const [books, setBooks] = useState([
     "Genesis",
@@ -100,6 +102,8 @@ export default function App() {
 
   const [hideAd, setHideAd] = useState(true);
 
+  const [theme, setTheme] = useState("dark");
+
   const updateLocalTabs = () => {
     AsyncStorage.getItem("tabs").then((tabsFS) => {
       const tabsJson = JSON.parse(tabsFS);
@@ -137,6 +141,14 @@ export default function App() {
         setHideAd(false);
       }
     });
+
+    AsyncStorage.getItem("theme").then((result) => {
+      if (result) {
+        setTheme(result);
+      } else {
+        AsyncStorage.setItem("theme", "light");
+      }
+    });
   }, []);
 
   const renderTab = (item) => {
@@ -172,6 +184,7 @@ export default function App() {
             index={item.index}
             tabs={tabs}
             books={books}
+            theme={theme}
           />
         ) : (
           <NewTab
@@ -179,6 +192,7 @@ export default function App() {
             updateLocalTabs={updateLocalTabs}
             setCurrentTab={setCurrentTab}
             index={item.index}
+            theme={theme}
           />
         )}
       </View>
@@ -199,7 +213,7 @@ export default function App() {
     <SafeAreaView style={styles.container}>
       <View>
         <FlatList
-          style={{ backgroundColor: "black" }}
+          style={{ backgroundColor: colors.tab.background.inactive[theme] }}
           data={[...tabs, "newTab"]}
           renderItem={renderTab}
           horizontal={true}
@@ -221,6 +235,7 @@ export default function App() {
             verse={verse}
             updateTab={updateTab}
             updateLocalTabs={updateLocalTabs}
+            theme={theme}
           />
         ) : null;
       })}
