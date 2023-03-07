@@ -25,6 +25,8 @@ import Settings from "./Settings";
 //   TestIds,
 // } from "react-native-google-mobile-ads";
 
+import * as NavigationBar from "expo-navigation-bar";
+
 const colors = require("./colors.json");
 
 export default function App() {
@@ -123,6 +125,33 @@ export default function App() {
     });
   };
 
+  const updateTheme = () => {
+    AsyncStorage.getItem("theme").then((result) => {
+      if (result) {
+        setTheme(result);
+        updateStatusBarColor();
+      } else {
+        AsyncStorage.setItem("theme", "light");
+        updateStatusBarColor();
+      }
+    });
+  };
+
+  const updateStatusBarColor = () => {
+    StatusBar.setBackgroundColor(colors.tab.background.inactive[theme], true);
+    StatusBar.setBarStyle(
+      theme == "light" ? "dark-content" : "light-content",
+      true
+    );
+    NavigationBar.setBackgroundColorAsync(
+      colors.tab.background.inactive[theme]
+    );
+  };
+
+  useEffect(() => {
+    updateStatusBarColor();
+  }, [theme]);
+
   useEffect(() => {
     // AsyncStorage.clear();
     updateLocalTabs();
@@ -131,7 +160,7 @@ export default function App() {
       Dimensions.get("screen").height - Dimensions.get("window").height
     );
 
-    StatusBar.setBackgroundColor("black", true);
+    // StatusBar.setBackgroundColor("blue", true);
     // StatusBar.setBarStyle("light-content");
 
     AsyncStorage.getItem("hideAd").then((result) => {
@@ -142,13 +171,7 @@ export default function App() {
       }
     });
 
-    AsyncStorage.getItem("theme").then((result) => {
-      if (result) {
-        setTheme(result);
-      } else {
-        AsyncStorage.setItem("theme", "light");
-      }
-    });
+    updateTheme();
   }, []);
 
   const renderTab = (item) => {
@@ -185,6 +208,8 @@ export default function App() {
             tabs={tabs}
             books={books}
             theme={theme}
+            updateTheme={updateTheme}
+            updateStatusBarColor={updateStatusBarColor}
           />
         ) : (
           <NewTab
@@ -210,10 +235,16 @@ export default function App() {
   const viewabilityConfigCallbackPairs = useRef([{ onViewableItemsChanged }]);
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView
+      style={{
+        ...styles.container,
+      }}
+    >
       <View>
         <FlatList
-          style={{ backgroundColor: colors.tab.background.inactive[theme] }}
+          style={{
+            backgroundColor: colors.tab.background.inactive[theme],
+          }}
           data={[...tabs, "newTab"]}
           renderItem={renderTab}
           horizontal={true}
@@ -259,7 +290,8 @@ const styles = StyleSheet.create({
     // backgroundColor: "orange",
     // padding: 12,
     // paddingBottom: 50,
-    paddingTop: StatusBar.currentHeight,
+    // paddingTop: StatusBar.currentHeight,
+    // paddingTop: 50,
     // backgroundColor: "black",
     // flex: 1
     // // fontFamily: "Arial, Helvetica, sans-serif",

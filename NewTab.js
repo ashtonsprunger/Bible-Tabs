@@ -9,7 +9,7 @@ export default function NewTab(props) {
     <Pressable
       style={{
         ...styles.tabButton,
-        backgroundColor: colors.tab.background.inactive[props.theme],
+        backgroundColor: "rgba(0, 0, 0, 0)",
       }}
       onPress={() => {
         AsyncStorage.getItem("tabs").then((data) => {
@@ -39,9 +39,12 @@ const styles = StyleSheet.create({
   tabButton: {
     alignItems: "center",
     justifyContent: "center",
-    paddingVertical: 10,
+    // paddingVertical: 10,
+    paddingTop: 14,
+    paddingBottom: 6,
+
     paddingHorizontal: 15,
-    elevation: 3,
+    // elevation: 3,
     borderTopLeftRadius: 12,
     borderTopRightRadius: 12,
   },

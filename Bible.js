@@ -267,21 +267,24 @@ export default function Bible(props) {
     return (
       <Text>
         {item.item[2] == 1 && !(item.item[0] == 0 && item.item[1] == 1) ? (
-          <Button
-            onPress={previousChapter}
-            title={
-              item.item[1] == 1
-                ? books[props.book - 1] +
-                  " " +
-                  getBookVerses(item.item[0] - 1, data)[
-                    getBookVerses(item.item[0] - 1, data).length - 1
-                  ][1]
-                : books[item.item[0]] + " " + String(item.item[1] - 1)
-            }
-          />
+          <Text style={{ fontSize: 48 }}>
+            <Button
+              onPress={previousChapter}
+              title={
+                item.item[1] == 1
+                  ? books[props.book - 1] +
+                    " " +
+                    getBookVerses(item.item[0] - 1, data)[
+                      getBookVerses(item.item[0] - 1, data).length - 1
+                    ][1]
+                  : books[item.item[0]] + " " + String(item.item[1] - 1)
+              }
+            />
+            {"\n"}
+          </Text>
         ) : null}
         <Text style={{ fontSize: 50, color: colors.bible.text[props.theme] }}>
-          {item.item[2] == 1 ? `\n${books[item.item[0]]}\n` : null}
+          {item.item[2] == 1 ? `${books[item.item[0]]}\n` : null}
         </Text>
         <Text style={{ fontSize: 50, color: colors.bible.text[props.theme] }}>
           {item.item[2] == 1 ? item.item[1] : null}

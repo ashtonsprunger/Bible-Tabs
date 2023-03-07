@@ -16,8 +16,8 @@
                 "dark": "black"
             },
             "inactive":{
-                "light": "#ebebeb",
-                "dark": "#292929"
+                "light": "#e3e3e3",
+                "dark": "#3b3b3b"
             }
         }
     },

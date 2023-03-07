@@ -8,6 +8,8 @@ import {
 } from "react-native";
 import { SelectList } from "react-native-dropdown-select-list";
 
+const colors = require("./colors.json");
+
 export default function (props) {
   const [data, setData] = useState(require("./data.json"));
   const [bookData, setBookData] = useState(require("./books.json"));
@@ -138,7 +140,15 @@ export default function (props) {
             }
           }}
         >
-          <Text style={{ fontSize: 20, height: 30 }}>{bookF.book}</Text>
+          <Text
+            style={{
+              fontSize: 20,
+              height: 30,
+              color: colors.bible.text[props.theme],
+            }}
+          >
+            {bookF.book}
+          </Text>
         </Pressable>
         <View>
           {openBook == bookF.book

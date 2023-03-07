@@ -21,13 +21,7 @@ export default function Tab(props) {
   const [tabName, setTabName] = useState(props.tabs[props.index].name);
 
   useEffect(() => {
-    if (modalOpen) {
-      StatusBar.setBackgroundColor("white", true);
-      // StatusBar.setBarStyle("dark-content");
-    } else {
-      StatusBar.setBackgroundColor("black", false);
-      StatusBar.setBarStyle("light-content");
-    }
+    // props.updateStatusBarColor();
   }, [modalOpen]);
 
   const changeTabName = (e) => {
@@ -89,6 +83,8 @@ export default function Tab(props) {
             padding: 12,
             // paddingTop: 60,
             height: "100%",
+            backgroundColor: colors.bible.background[props.theme],
+            justifyContent: "space-between",
           }}
         >
           <View
@@ -99,7 +95,12 @@ export default function Tab(props) {
             }}
           >
             <TextInput
-              style={{ fontSize: 35, marginBottom: 15, width: "85%" }}
+              style={{
+                fontSize: 35,
+                marginBottom: 15,
+                width: "85%",
+                color: colors.bible.text[props.theme],
+              }}
               value={tabName}
               onChange={changeTabName}
               placeholder={
@@ -107,21 +108,25 @@ export default function Tab(props) {
                 " " +
                 props.tabs[props.index].reference.split(",")[1]
               }
+              placeholderTextColor={"rgb(150,150,150)"}
               selectTextOnFocus={true}
             />
-            <Settings />
+            <Settings theme={props.theme} updateTheme={props.updateTheme} />
           </View>
           <Browser
             books={props.books}
             reference={props.tabs[props.index].reference.split(",")}
             updateReference={updateReference}
             toggleOpen={toggleOpen}
+            theme={props.theme}
           />
-          <View style={{ marginTop: 15 }}>
-            <Button color={"red"} onPress={removeTab} title="Remove Tab" />
-          </View>
-          <View style={{ marginTop: 15 }}>
-            <Button onPress={toggleOpen} title="Done" />
+          <View>
+            <View style={{ marginTop: 15 }}>
+              <Button color={"red"} onPress={removeTab} title="Remove Tab" />
+            </View>
+            <View style={{ marginTop: 15 }}>
+              <Button onPress={toggleOpen} title="Done" />
+            </View>
           </View>
         </View>
       </Modal>
@@ -132,7 +137,9 @@ export default function Tab(props) {
           backgroundColor:
             props.index == props.currentTab
               ? colors.tab.background.active[props.theme]
-              : colors.tab.background.inactive[props.theme],
+              : "rgba(0, 0, 0, 0)",
+          marginTop: 4,
+          elevation: props.index == props.currentTab ? 4 : -0,
         }}
         onPress={() => {
           props.updateLocalTabs();
@@ -167,9 +174,8 @@ const styles = StyleSheet.create({
   tabButton: {
     alignItems: "center",
     justifyContent: "center",
-    paddingVertical: 10,
+    paddingVertical: 9,
     paddingHorizontal: 15,
-    elevation: 3,
     borderTopLeftRadius: 12,
     borderTopRightRadius: 12,
   },
