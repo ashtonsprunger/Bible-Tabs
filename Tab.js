@@ -111,7 +111,14 @@ export default function Tab(props) {
               placeholderTextColor={"rgb(150,150,150)"}
               selectTextOnFocus={true}
             />
-            <Settings theme={props.theme} updateTheme={props.updateTheme} />
+            <Settings
+              theme={props.theme}
+              updateTheme={props.updateTheme}
+              allowRotation={props.allowRotation}
+              updateRotation={props.updateRotation}
+              textSize={props.textSize}
+              updateTextSize={props.updateTextSize}
+            />
           </View>
           <Browser
             books={props.books}
@@ -136,8 +143,8 @@ export default function Tab(props) {
           ...styles.tabButton,
           backgroundColor:
             props.index == props.currentTab
-              ? colors.tab.background.active[props.theme]
-              : "rgba(0, 0, 0, 0)",
+              ? colors.tab.tab.active[props.theme]
+              : colors.tab.tab.inactive[props.theme],
           marginTop: 4,
           elevation: props.index == props.currentTab ? 4 : -0,
         }}

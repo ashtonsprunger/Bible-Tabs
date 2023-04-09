@@ -35,7 +35,7 @@ export default function (props) {
   //   { key: 16, value: "Esther" },
   //   { key: 17, value: "Job" },
   //   { key: 18, value: "Psalms" },
-  //   { key: 19, value: "Proberbs" },
+  //   { key: 19, value: "Proverbs" },
   //   { key: 20, value: "Ecclesiastes" },
   //   { key: 21, value: "Song of Solomon" },
   //   { key: 22, value: "Isaiah" },
@@ -123,8 +123,38 @@ export default function (props) {
   const renderItem = (item) => {
     let bookF = item.item;
 
+    if (typeof bookF == "string") {
+      return (
+        <>
+          <View
+            style={{
+              borderBottomColor: colors.bible.text[props.theme],
+              borderBottomWidth: 1,
+            }}
+          />
+
+          <Text
+            style={{
+              fontSize: 25,
+              height: 35,
+              color: colors.bible.text[props.theme],
+              textAlign: "center",
+            }}
+          >
+            {bookF}
+          </Text>
+          <View
+            style={{
+              borderBottomColor: colors.bible.text[props.theme],
+              borderBottomWidth: 1,
+            }}
+          />
+        </>
+      );
+    }
+
     return (
-      <View>
+      <View key={item.index}>
         <Pressable
           style={{ marginVertical: 0, paddingVertical: 0 }}
           onPress={() => {
@@ -152,35 +182,38 @@ export default function (props) {
         </Pressable>
         <View>
           {openBook == bookF.book
-            ? generateArray(Math.ceil(bookF.chapters / 5)).map((set) => (
-                <View style={{ flexDirection: "row" }}>
-                  {generateArray(bookF.chapters)
-                    .slice((set - 1) * 5, (set - 1) * 5 + 5)
-                    .map((chapter) => (
-                      <Pressable
-                        style={{
-                          width: "20%",
-                          paddingVertical: 4,
-                        }}
-                        onPress={() => {
-                          props.updateReference([book, chapter, 1]);
-                          props.toggleOpen();
-                        }}
-                      >
-                        <Text
+            ? generateArray(Math.ceil(bookF.chapters / 5)).map(
+                (set, bindex) => (
+                  <View key={bindex} style={{ flexDirection: "row" }}>
+                    {generateArray(bookF.chapters)
+                      .slice((set - 1) * 5, (set - 1) * 5 + 5)
+                      .map((chapter, chindex) => (
+                        <Pressable
+                          key={chindex}
                           style={{
-                            fontSize: 20,
-                            color: "rgb(150,150,150)",
-                            width: "100%",
-                            textAlign: "center",
+                            width: "20%",
+                            paddingVertical: 4,
+                          }}
+                          onPress={() => {
+                            props.updateReference([book, chapter, 1]);
+                            props.toggleOpen();
                           }}
                         >
-                          {chapter}
-                        </Text>
-                      </Pressable>
-                    ))}
-                </View>
-              ))
+                          <Text
+                            style={{
+                              fontSize: 20,
+                              color: "rgb(150,150,150)",
+                              width: "100%",
+                              textAlign: "center",
+                            }}
+                          >
+                            {chapter}
+                          </Text>
+                        </Pressable>
+                      ))}
+                  </View>
+                )
+              )
             : null}
         </View>
       </View>
@@ -218,15 +251,32 @@ export default function (props) {
       </View> */}
       <FlatList
         ref={ref}
-        data={bookData}
+        data={[
+          "Old Testament",
+          ...bookData.slice(0, 39),
+          "New Testament",
+          ...bookData.slice(39, 66),
+        ]}
         renderItem={renderItem}
-        initialNumToRender={66}
+        initialNumToRender={68}
         onLayout={scrollToBook}
-        getItemLayout={(data, index) => ({
-          length: 30,
-          offset: 30 * index,
-          index,
-        })}
+        getItemLayout={(data, index) => {
+          let offset = 30 * index;
+
+          if (index > 0) {
+            offset += 35;
+          }
+
+          if (index > 39) {
+            offset += 35;
+          }
+
+          return {
+            length: 30,
+            offset: offset,
+            index,
+          };
+        }}
       />
     </View>
   );

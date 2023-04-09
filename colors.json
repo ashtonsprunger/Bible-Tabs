@@ -3,32 +3,49 @@
         "text":{
             "active":{
                 "light": "black",
+                "sepia": "black",
                 "dark": "white"
             },
             "inactive":{
-                "light": "#474747",
-                "dark": "#e6e6e6"
+                "light": "#595959",
+                "sepia": "#595959",
+                "dark": "#c4c4c4"
+            }
+        },
+        "tab":{
+            "active":{
+                "light": "white",
+                "sepia": "#fffced",
+                "dark": "#303030"
+            },
+            "inactive":{
+                "light": "#e8e8e8",
+                "sepia": "#ebe9dd",
+                "dark": "#212121"
             }
         },
         "background":{
-            "active":{
-                "light": "white",
-                "dark": "black"
-            },
-            "inactive":{
-                "light": "#e3e3e3",
-                "dark": "#3b3b3b"
-            }
+            "light":"lightgrey",
+            "sepia":"#dbdace",
+            "dark": "black"
         }
+        
     },
     "bible":{
         "text":{
             "light": "black",
+            "sepia": "black",
             "dark": "white"
         },
         "background":{
             "light": "white",
-            "dark": "black"
+            "sepia": "#fffced",
+            "dark": "#303030"
+        },
+        "verse":{
+            "light": "#0051ff",
+            "sepia": "#0051ff",
+            "dark": "#87aeff"            
         }
     }
 }

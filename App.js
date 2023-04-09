@@ -17,6 +17,7 @@ import Bible from "./Bible";
 import Tab from "./Tab";
 // import Carousel from "react-native-reanimated-carousel";
 import { getNavigationBarHeight } from "react-native-android-navbar-height";
+import Why from "./Why";
 import NewTab from "./NewTab";
 import Settings from "./Settings";
 // import {
@@ -26,6 +27,7 @@ import Settings from "./Settings";
 // } from "react-native-google-mobile-ads";
 
 import * as NavigationBar from "expo-navigation-bar";
+import * as ScreenOrientation from "expo-screen-orientation";
 
 const colors = require("./colors.json");
 
@@ -50,7 +52,7 @@ export default function App() {
     "Esther",
     "Job",
     "Psalms",
-    "Proberbs",
+    "Proverbs",
     "Ecclesiastes",
     "Song of Solomon",
     "Isaiah",
@@ -100,11 +102,47 @@ export default function App() {
   ]);
 
   const [tabs, setTabs] = useState([]);
-  const [currentTab, setCurrentTab] = useState(0);
+  const [currentTab, setCurrentTab] = useState();
 
   const [hideAd, setHideAd] = useState(true);
 
   const [theme, setTheme] = useState("dark");
+  const [allowRotation, setAllowRotation] = useState("false");
+  const [textSize, setTextSize] = useState("18");
+
+  const updateTextSize = () => {
+    AsyncStorage.getItem("textSize").then((result) => {
+      if (result) {
+        setTextSize(result);
+      } else {
+        AsyncStorage.setItem("textSize", "18");
+        setTextSize("18");
+      }
+    });
+  };
+  updateTextSize();
+
+  async function allowRotationDefault() {
+    await ScreenOrientation.lockAsync(
+      ScreenOrientation.OrientationLock.DEFAULT
+    );
+  }
+
+  async function lockPortraitRotation() {
+    await ScreenOrientation.lockAsync(
+      ScreenOrientation.OrientationLock.PORTRAIT
+    );
+  }
+
+  const updateRotation = () => {
+    AsyncStorage.getItem("rotate").then((result) => {
+      if (result) {
+        setAllowRotation(result);
+      } else {
+        AsyncStorage.setItem("rotate", "false");
+      }
+    });
+  };
 
   const updateLocalTabs = () => {
     AsyncStorage.getItem("tabs").then((tabsFS) => {
@@ -133,26 +171,53 @@ export default function App() {
       } else {
         AsyncStorage.setItem("theme", "light");
         updateStatusBarColor();
+        setTheme("light");
       }
     });
   };
 
   const updateStatusBarColor = () => {
-    StatusBar.setBackgroundColor(colors.tab.background.inactive[theme], true);
+    StatusBar.setBackgroundColor(colors.tab.background[theme], true);
     StatusBar.setBarStyle(
-      theme == "light" ? "dark-content" : "light-content",
+      theme == "light" || theme == "sepia" ? "dark-content" : "light-content",
       true
     );
-    NavigationBar.setBackgroundColorAsync(
-      colors.tab.background.inactive[theme]
-    );
+    NavigationBar.setBackgroundColorAsync(colors.tab.background[theme]);
   };
+
+  const updateCurrentTab = () => {
+    AsyncStorage.getItem("lastTab").then((result) => {
+      if (result) {
+        console.log("result", result);
+        setCurrentTab(Number(result));
+      } else {
+        AsyncStorage.setItem("lastTab", "0");
+        setCurrentTab(0);
+      }
+    });
+  };
+
+  useEffect(() => {
+    if (currentTab != undefined) {
+      console.log("str curr", currentTab.toString());
+      AsyncStorage.setItem("lastTab", String(currentTab));
+    }
+  }, [currentTab]);
 
   useEffect(() => {
     updateStatusBarColor();
   }, [theme]);
 
   useEffect(() => {
+    if (allowRotation == "true") {
+      allowRotationDefault();
+    } else {
+      lockPortraitRotation();
+    }
+  }, [allowRotation]);
+
+  useEffect(() => {
+    // AsyncStorage.clear();
     // AsyncStorage.clear();
     updateLocalTabs();
     console.log(
@@ -172,6 +237,9 @@ export default function App() {
     });
 
     updateTheme();
+    updateRotation();
+    updateTextSize();
+    updateCurrentTab();
   }, []);
 
   const renderTab = (item) => {
@@ -210,6 +278,11 @@ export default function App() {
             theme={theme}
             updateTheme={updateTheme}
             updateStatusBarColor={updateStatusBarColor}
+            allowRotation={allowRotation}
+            updateRotation={updateRotation}
+            textSize={textSize}
+            updateTextSize={updateTextSize}
+            key={item.index}
           />
         ) : (
           <NewTab
@@ -243,7 +316,7 @@ export default function App() {
       <View>
         <FlatList
           style={{
-            backgroundColor: colors.tab.background.inactive[theme],
+            backgroundColor: colors.tab.background[theme],
           }}
           data={[...tabs, "newTab"]}
           renderItem={renderTab}
@@ -267,9 +340,14 @@ export default function App() {
             updateTab={updateTab}
             updateLocalTabs={updateLocalTabs}
             theme={theme}
+            key={index}
+            textSize={textSize}
           />
         ) : null;
       })}
+      {tabs.length == 0 && currentTab != undefined ? (
+        <Why theme={theme} />
+      ) : null}
       {/* <BannerAd
         unitId="ca-app-pub-2469761428575146/1250229229"
         size={BannerAdSize.BANNER}

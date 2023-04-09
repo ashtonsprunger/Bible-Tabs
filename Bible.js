@@ -76,7 +76,7 @@ export default function Bible(props) {
     "Esther",
     "Job",
     "Psalms",
-    "Proberbs",
+    "Proverbs",
     "Ecclesiastes",
     "Song of Solomon",
     "Isaiah",
@@ -265,7 +265,7 @@ export default function Bible(props) {
 
   const renderItem = (item) => {
     return (
-      <Text>
+      <Text key={item.index}>
         {item.item[2] == 1 && !(item.item[0] == 0 && item.item[1] == 1) ? (
           <Text style={{ fontSize: 48 }}>
             <Button
@@ -283,17 +283,37 @@ export default function Bible(props) {
             {"\n"}
           </Text>
         ) : null}
-        <Text style={{ fontSize: 50, color: colors.bible.text[props.theme] }}>
+        <Text
+          style={{
+            fontSize: 30 + Number(props.textSize),
+            color: colors.bible.text[props.theme],
+          }}
+        >
           {item.item[2] == 1 ? `${books[item.item[0]]}\n` : null}
         </Text>
-        <Text style={{ fontSize: 50, color: colors.bible.text[props.theme] }}>
+        <Text
+          style={{
+            fontSize: 30 + Number(props.textSize),
+            color: colors.bible.text[props.theme],
+          }}
+        >
           {item.item[2] == 1 ? item.item[1] : null}
         </Text>
         {item.item[2] == 1 ? <Text> </Text> : null}
-        <Text style={{ color: "#0051ff", fontSize: 13 }}>
+        <Text
+          style={{
+            color: colors.bible.verse[props.theme],
+            fontSize: 0.7 * Number(props.textSize),
+          }}
+        >
           {item.item[2] != 1 ? `${item.item[2]} ` : null}
         </Text>
-        <Text style={{ fontSize: 18, color: colors.bible.text[props.theme] }}>
+        <Text
+          style={{
+            fontSize: Number(props.textSize),
+            color: colors.bible.text[props.theme],
+          }}
+        >
           {item.item[3]}
         </Text>
         {item.item[2] == chapterData[chapterData.length - 1][2] ? (
