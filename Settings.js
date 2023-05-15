@@ -9,14 +9,20 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import Version from "./Version";
 
 const colors = require("./colors.json");
 
 export default function Settings(props) {
   const [modalOpen, setModalOpen] = useState(false);
+  const [versionOpen, setVersionOpen] = useState(false);
 
   const toggleOpen = () => {
     setModalOpen(!modalOpen);
+  };
+
+  const toggleVersionOpen = () => {
+    setVersionOpen(!versionOpen);
   };
 
   const toggleTheme = () => {
@@ -41,6 +47,12 @@ export default function Settings(props) {
   const themeDark = () => {
     AsyncStorage.setItem("theme", "dark").then(() => {
       props.updateTheme();
+    });
+  };
+
+  const setColor = (color) => {
+    AsyncStorage.setItem("color", color).then(() => {
+      props.updateColor();
     });
   };
 
@@ -142,6 +154,145 @@ export default function Settings(props) {
             <Text
               style={{ fontSize: 30, color: colors.bible.text[props.theme] }}
             >
+              Color
+            </Text>
+            <TouchableOpacity
+              style={{
+                backgroundColor: colors.bible.color[props.theme].red[0],
+                padding: 3,
+                paddingHorizontal: 8,
+                borderWidth: 2,
+                borderColor: "black",
+              }}
+              onPress={() => {
+                setColor("red");
+              }}
+            >
+              <Text
+                style={{ fontSize: 20, color: colors.bible.text[props.theme] }}
+              >
+                {props.color == "red" ? "✓" : "   "}
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={{
+                backgroundColor: colors.bible.color[props.theme].orange[0],
+                padding: 3,
+                paddingHorizontal: 8,
+                borderWidth: 2,
+                borderColor: "black",
+              }}
+              onPress={() => {
+                setColor("orange");
+              }}
+            >
+              <Text
+                style={{ fontSize: 20, color: colors.bible.text[props.theme] }}
+              >
+                {props.color == "orange" ? "✓" : "   "}
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={{
+                backgroundColor: colors.bible.color[props.theme].yellow[0],
+                padding: 3,
+                paddingHorizontal: 8,
+                borderWidth: 2,
+                borderColor: "black",
+              }}
+              onPress={() => {
+                setColor("yellow");
+              }}
+            >
+              <Text
+                style={{ fontSize: 20, color: colors.bible.text[props.theme] }}
+              >
+                {props.color == "yellow" ? "✓" : "   "}
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={{
+                backgroundColor: colors.bible.color[props.theme].green[0],
+                padding: 3,
+                paddingHorizontal: 8,
+                borderWidth: 2,
+                borderColor: "black",
+              }}
+              onPress={() => {
+                setColor("green");
+              }}
+            >
+              <Text
+                style={{ fontSize: 20, color: colors.bible.text[props.theme] }}
+              >
+                {props.color == "green" ? "✓" : "   "}
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={{
+                backgroundColor: colors.bible.color[props.theme].blue[0],
+                padding: 3,
+                paddingHorizontal: 8,
+                borderWidth: 2,
+                borderColor: "black",
+              }}
+              onPress={() => {
+                setColor("blue");
+              }}
+            >
+              <Text
+                style={{ fontSize: 20, color: colors.bible.text[props.theme] }}
+              >
+                {props.color == "blue" ? "✓" : "   "}
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={{
+                backgroundColor: colors.bible.color[props.theme].purple[0],
+                padding: 3,
+                paddingHorizontal: 8,
+                borderWidth: 2,
+                borderColor: "black",
+              }}
+              onPress={() => {
+                setColor("purple");
+              }}
+            >
+              <Text
+                style={{ fontSize: 20, color: colors.bible.text[props.theme] }}
+              >
+                {props.color == "purple" ? "✓" : "   "}
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={{
+                backgroundColor: colors.bible.color[props.theme].pink[0],
+                padding: 3,
+                paddingHorizontal: 8,
+                borderWidth: 2,
+                borderColor: "black",
+              }}
+              onPress={() => {
+                setColor("pink");
+              }}
+            >
+              <Text
+                style={{ fontSize: 20, color: colors.bible.text[props.theme] }}
+              >
+                {props.color == "pink" ? "✓" : "   "}
+              </Text>
+            </TouchableOpacity>
+          </View>
+          <View
+            style={{
+              flexDirection: "row",
+              justifyContent: "space-between",
+              marginBottom: 12,
+            }}
+          >
+            <Text
+              style={{ fontSize: 30, color: colors.bible.text[props.theme] }}
+            >
               Text Size
             </Text>
             <TouchableOpacity
@@ -158,7 +309,7 @@ export default function Settings(props) {
                   fontSize: 15,
                   color:
                     props.textSize == "15"
-                      ? colors.bible.verse[props.theme]
+                      ? colors.bible.color[props.theme][props.color][1]
                       : colors.bible.text[props.theme],
                 }}
               >
@@ -179,7 +330,7 @@ export default function Settings(props) {
                   fontSize: 18,
                   color:
                     props.textSize == "18"
-                      ? colors.bible.verse[props.theme]
+                      ? colors.bible.color[props.theme][props.color][1]
                       : colors.bible.text[props.theme],
                 }}
               >
@@ -200,7 +351,7 @@ export default function Settings(props) {
                   fontSize: 24,
                   color:
                     props.textSize == "24"
-                      ? colors.bible.verse[props.theme]
+                      ? colors.bible.color[props.theme][props.color][1]
                       : colors.bible.text[props.theme],
                 }}
               >
@@ -221,7 +372,7 @@ export default function Settings(props) {
                   fontSize: 32,
                   color:
                     props.textSize == "32"
-                      ? colors.bible.verse[props.theme]
+                      ? colors.bible.color[props.theme][props.color][1]
                       : colors.bible.text[props.theme],
                 }}
               >
@@ -242,7 +393,7 @@ export default function Settings(props) {
                   fontSize: 40,
                   color:
                     props.textSize == "40"
-                      ? colors.bible.verse[props.theme]
+                      ? colors.bible.color[props.theme][props.color][1]
                       : colors.bible.text[props.theme],
                 }}
               >
@@ -276,8 +427,24 @@ export default function Settings(props) {
               </Text>
             </TouchableOpacity>
           </View>
-
-          <Button title="done" onPress={toggleOpen} />
+          <View>
+            <View style={{ alignItems: "center" }}>
+              <Version
+                modalOpen={versionOpen}
+                toggleOpen={toggleVersionOpen}
+                theme={props.theme}
+                color={props.color}
+                updateColor={props.updateColor}
+                show={true}
+              />
+            </View>
+            <View style={{ height: 20 }}></View>
+            <Button
+              title="done"
+              onPress={toggleOpen}
+              color={colors.bible.color[props.theme][props.color][0]}
+            />
+          </View>
         </View>
       </Modal>
       <Pressable

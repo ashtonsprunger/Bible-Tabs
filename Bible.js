@@ -269,6 +269,7 @@ export default function Bible(props) {
         {item.item[2] == 1 && !(item.item[0] == 0 && item.item[1] == 1) ? (
           <Text style={{ fontSize: 48 }}>
             <Button
+              color={colors.bible.color[props.theme][props.color][0]}
               onPress={previousChapter}
               title={
                 item.item[1] == 1
@@ -302,7 +303,7 @@ export default function Bible(props) {
         {item.item[2] == 1 ? <Text> </Text> : null}
         <Text
           style={{
-            color: colors.bible.verse[props.theme],
+            color: colors.bible.color[props.theme][props.color][1],
             fontSize: 0.7 * Number(props.textSize),
           }}
         >
@@ -322,6 +323,7 @@ export default function Bible(props) {
               <>
                 <Text>{"\n\n"}</Text>
                 <Button
+                  color={colors.bible.color[props.theme][props.color][0]}
                   onPress={nextChapter}
                   title={
                     item.item[1] ==

@@ -42,10 +42,34 @@
             "sepia": "#fffced",
             "dark": "#303030"
         },
-        "verse":{
-            "light": "#0051ff",
-            "sepia": "#0051ff",
-            "dark": "#87aeff"            
+        "color":{
+            "light": {
+                "red":[ "#ff6161","#ff6161"],
+                "orange":[ "#ff9124","#ff9124"],
+                "yellow":[ "#ebe300","#ccc500"],
+                "green":[ "#00a120","#00a120"],
+                "blue":["#308aff","#308aff"],
+                "purple":["#ae00ff","#ae00ff"],
+                "pink":["#ff00ff","#ff00ff"]
+            },
+            "sepia": {
+                "red": [ "#ff6161","#ff6161"],
+                "orange":[ "#ff9124","#ff9124"],
+                "yellow":[ "#ebe300","#ccc500"],
+                "green":[ "#00a120","#00a120"], 
+                "blue":["#308aff","#308aff"],
+                "purple":["#ae00ff","#ae00ff"],
+                "pink":["#ff00ff","#ff00ff"]
+            },
+            "dark": {
+                "red": ["#ff6161", "#ff6161"],
+                "orange":[ "#ff9124","#ff9124"],
+                "yellow":[ "#e8e000","#e8e000"],
+                "green":[ "#00a120","#00a120"],   
+                "blue":["#5ea4ff","#82b8ff"],
+                "purple":["#ae00ff","#c13bff"],
+                "pink":["#ff00ff","#ff00ff"]
+            }            
         }
     }
 }

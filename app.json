@@ -2,7 +2,7 @@
   "expo": {
     "name": "Bible Tabs",
     "slug": "EsvBible",
-    "version": "3.5.0",
+    "version": "4.2.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "splash": {
@@ -20,7 +20,7 @@
     },
     "android": {
       "package": "ashtonsprunger.bibletabs",
-      "versionCode": 9,
+      "versionCode": 12,
       "icon": "./assets/icon.png",
       "adaptiveIcon": {
         "foregroundImage": "./assets/foreground.png",

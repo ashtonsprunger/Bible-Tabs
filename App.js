@@ -28,6 +28,9 @@ import Settings from "./Settings";
 
 import * as NavigationBar from "expo-navigation-bar";
 import * as ScreenOrientation from "expo-screen-orientation";
+import Version from "./Version";
+
+const updateBigEnough = true;
 
 const colors = require("./colors.json");
 
@@ -107,8 +110,12 @@ export default function App() {
   const [hideAd, setHideAd] = useState(true);
 
   const [theme, setTheme] = useState("dark");
+  const [color, setColor] = useState("blue");
   const [allowRotation, setAllowRotation] = useState("false");
   const [textSize, setTextSize] = useState("18");
+  const [lastVersion, setLastVersion] = useState("");
+
+  const [showNew, setShowNew] = useState(false);
 
   const updateTextSize = () => {
     AsyncStorage.getItem("textSize").then((result) => {
@@ -144,6 +151,20 @@ export default function App() {
     });
   };
 
+  const updateLastVersion = () => {
+    AsyncStorage.getItem("lastVersion").then((result) => {
+      // if (result) {
+      // setLastVersion(result)
+      setShowNew(result != require("./app.json").expo.version);
+      // }
+    });
+  };
+
+  const closeNewModal = () => {
+    setShowNew(false);
+    AsyncStorage.setItem("lastVersion", require("./app.json").expo.version);
+  };
+
   const updateLocalTabs = () => {
     AsyncStorage.getItem("tabs").then((tabsFS) => {
       const tabsJson = JSON.parse(tabsFS);
@@ -172,6 +193,16 @@ export default function App() {
         AsyncStorage.setItem("theme", "light");
         updateStatusBarColor();
         setTheme("light");
+      }
+    });
+  };
+  const updateColor = () => {
+    AsyncStorage.getItem("color").then((result) => {
+      if (result) {
+        setColor(result);
+      } else {
+        AsyncStorage.setItem("color", "blue");
+        setColor("blue");
       }
     });
   };
@@ -237,9 +268,13 @@ export default function App() {
     });
 
     updateTheme();
+    updateColor();
     updateRotation();
     updateTextSize();
     updateCurrentTab();
+    if (updateBigEnough) {
+      updateLastVersion();
+    }
   }, []);
 
   const renderTab = (item) => {
@@ -276,7 +311,9 @@ export default function App() {
             tabs={tabs}
             books={books}
             theme={theme}
+            color={color}
             updateTheme={updateTheme}
+            updateColor={updateColor}
             updateStatusBarColor={updateStatusBarColor}
             allowRotation={allowRotation}
             updateRotation={updateRotation}
@@ -340,6 +377,7 @@ export default function App() {
             updateTab={updateTab}
             updateLocalTabs={updateLocalTabs}
             theme={theme}
+            color={color}
             key={index}
             textSize={textSize}
           />
@@ -352,6 +390,14 @@ export default function App() {
         unitId="ca-app-pub-2469761428575146/1250229229"
         size={BannerAdSize.BANNER}
       /> */}
+      <Version
+        modalOpen={showNew}
+        toggleOpen={closeNewModal}
+        theme={theme}
+        color={color}
+        updateColor={updateColor}
+        show={false}
+      />
     </SafeAreaView>
   );
 }

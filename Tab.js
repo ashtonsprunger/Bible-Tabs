@@ -113,7 +113,9 @@ export default function Tab(props) {
             />
             <Settings
               theme={props.theme}
+              color={props.color}
               updateTheme={props.updateTheme}
+              updateColor={props.updateColor}
               allowRotation={props.allowRotation}
               updateRotation={props.updateRotation}
               textSize={props.textSize}
@@ -129,10 +131,18 @@ export default function Tab(props) {
           />
           <View>
             <View style={{ marginTop: 15 }}>
-              <Button color={"red"} onPress={removeTab} title="Remove Tab" />
+              <Button
+                color={colors.bible.color[props.theme].red[0]}
+                onPress={removeTab}
+                title="Remove Tab"
+              />
             </View>
             <View style={{ marginTop: 15 }}>
-              <Button onPress={toggleOpen} title="Done" />
+              <Button
+                onPress={toggleOpen}
+                title="Done"
+                color={colors.bible.color[props.theme][props.color][0]}
+              />
             </View>
           </View>
         </View>
@@ -146,7 +156,11 @@ export default function Tab(props) {
               ? colors.tab.tab.active[props.theme]
               : colors.tab.tab.inactive[props.theme],
           marginTop: 4,
-          elevation: props.index == props.currentTab ? 4 : -0,
+          borderTopWidth: 3,
+          borderTopColor:
+            props.currentTab == props.index
+              ? colors.bible.color[props.theme][props.color][0]
+              : "rgba(0,0,0,0)",
         }}
         onPress={() => {
           props.updateLocalTabs();
