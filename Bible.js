@@ -3,13 +3,15 @@ import {
   View,
   StyleSheet,
   Text,
-  ScrollView,
-  Header,
   FlatList,
   Button,
-  Dimensions,
+  Pressable,
+  TouchableOpacity,
+  Vibration,
+  Linking,
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import MyButton from "./MyButton";
 
 const colors = require("./colors.json");
 
@@ -161,6 +163,11 @@ export default function Bible(props) {
   };
   const viewabilityConfigCallbackPairs = useRef([{ onViewableItemsChanged }]);
 
+  const refresh = () => {
+    console.log("refresh");
+    props.toggleShowSearch();
+  };
+
   const updateReference = async (newReference) => {
     try {
       // let oldData;
@@ -188,7 +195,10 @@ export default function Bible(props) {
           tabs = JSON.parse(tabs);
           tabs[props.index].reference = newReference;
           console.log(tabs);
-          AsyncStorage.setItem("tabs", JSON.stringify(tabs));
+          AsyncStorage.setItem("tabs", JSON.stringify(tabs)).then(() => {
+            console.log("update local tabs");
+            props.updateLocalTabs();
+          });
         })
         .catch(console.log);
     } catch (e) {
@@ -228,9 +238,9 @@ export default function Bible(props) {
     ref.current.scrollToIndex({ index: 0, animated: true });
 
     setChapterData(getChapterVerses(newBook, newChapter, data));
-    setTimeout(() => {
-      props.updateLocalTabs();
-    }, 200);
+    // setTimeout(() => {
+    //   props.updateLocalTabs();
+    // }, 200);
   };
 
   const nextChapter = () => {
@@ -255,9 +265,9 @@ export default function Bible(props) {
     ref.current.scrollToIndex({ index: 0, animated: true });
 
     setChapterData(getChapterVerses(newBook, newChapter, data));
-    setTimeout(() => {
-      props.updateLocalTabs();
-    }, 200);
+    // setTimeout(() => {
+    //   props.updateLocalTabs();
+    // }, 200);
   };
 
   const ref = useRef(FlatList);
@@ -267,22 +277,52 @@ export default function Bible(props) {
     return (
       <Text key={item.index}>
         {item.item[2] == 1 && !(item.item[0] == 0 && item.item[1] == 1) ? (
-          <Text style={{ fontSize: 48 }}>
-            <Button
-              color={colors.bible.color[props.theme][props.color][0]}
-              onPress={previousChapter}
-              title={
-                item.item[1] == 1
-                  ? books[props.book - 1] +
-                    " " +
-                    getBookVerses(item.item[0] - 1, data)[
-                      getBookVerses(item.item[0] - 1, data).length - 1
-                    ][1]
-                  : books[item.item[0]] + " " + String(item.item[1] - 1)
-              }
-            />
-            {"\n"}
-          </Text>
+          <>
+            <Text
+              style={{
+                fontSize: 48,
+              }}
+            >
+              <MyButton
+                color={colors.bible.color[props.theme][props.color][1]}
+                textColor={colors.bible.text[props.theme]}
+                backgroundColor={colors.tab.tab.inactive[props.theme]}
+                onPress={previousChapter}
+                title={
+                  item.item[1] == 1
+                    ? books[props.book - 1] +
+                      " " +
+                      getBookVerses(item.item[0] - 1, data)[
+                        getBookVerses(item.item[0] - 1, data).length - 1
+                      ][1]
+                    : books[item.item[0]] + " " + String(item.item[1] - 1)
+                }
+              />
+              {"\n"}
+            </Text>
+          </>
+        ) : null}
+        {item.item[2] == 1 ? (
+          <Pressable
+            onLongPress={() => {
+              Vibration.vibrate(10);
+              Linking.openURL(
+                `https://www.gotquestions.org/book-of-${books[item.item[0]]
+                  .split(" ")
+                  .join("-")}.html`
+              );
+            }}
+            delayLongPress={300}
+          >
+            <Text
+              style={{
+                fontSize: 30 + Number(props.textSize),
+                color: colors.bible.text[props.theme],
+              }}
+            >
+              {`${books[item.item[0]]}`}
+            </Text>
+          </Pressable>
         ) : null}
         <Text
           style={{
@@ -290,15 +330,7 @@ export default function Bible(props) {
             color: colors.bible.text[props.theme],
           }}
         >
-          {item.item[2] == 1 ? `${books[item.item[0]]}\n` : null}
-        </Text>
-        <Text
-          style={{
-            fontSize: 30 + Number(props.textSize),
-            color: colors.bible.text[props.theme],
-          }}
-        >
-          {item.item[2] == 1 ? item.item[1] : null}
+          {item.item[2] == 1 ? `\n${item.item[1]}` : null}
         </Text>
         {item.item[2] == 1 ? <Text> </Text> : null}
         <Text
@@ -322,8 +354,10 @@ export default function Bible(props) {
             {!(item.item[0] == 65 && item.item[1] == 22) ? (
               <>
                 <Text>{"\n\n"}</Text>
-                <Button
-                  color={colors.bible.color[props.theme][props.color][0]}
+                <MyButton
+                  color={colors.bible.color[props.theme][props.color][1]}
+                  textColor={colors.bible.text[props.theme]}
+                  backgroundColor={colors.tab.tab.inactive[props.theme]}
                   onPress={nextChapter}
                   title={
                     item.item[1] ==
@@ -336,7 +370,7 @@ export default function Bible(props) {
                 />
               </>
             ) : null}
-            <Text>{"\n\n\n\n\n"}</Text>
+            <Text>{"\n\n\n"}</Text>
           </>
         ) : null}
       </Text>
@@ -351,12 +385,16 @@ export default function Bible(props) {
     <View
       style={{
         // width: Dimensions.get("window").width,
+        // flex: 10,
+        // height: !props.showSearch ? "auto" : "auto",
+        height: "100%",
         paddingRight: 12,
         paddingLeft: 12,
         backgroundColor: colors.bible.background[props.theme],
       }}
     >
       <FlatList
+        // style={{ height: "80%" }}
         ref={ref}
         // initialScrollIndex={index}
         data={chapterData}
@@ -369,6 +407,8 @@ export default function Bible(props) {
         viewabilityConfig={{ itemVisiblePercentThreshold: 50 }}
         // onViewableItemsChanged={itemChange}
         viewabilityConfigCallbackPairs={viewabilityConfigCallbackPairs.current}
+        refreshing={false}
+        onRefresh={refresh}
       />
     </View>
   );

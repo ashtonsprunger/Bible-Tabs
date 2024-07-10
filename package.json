@@ -27,7 +27,7 @@
     "react": "18.2.0",
     "react-dom": "18.2.0",
     "react-modal": "^3.16.1",
-    "react-native": "0.71.6",
+    "react-native": "0.71.14",
     "react-native-android-navbar-height": "git+https://github.com/ConnectyCube/react-native-android-navbar-height.git#main",
     "react-native-async-storage": "^0.0.1",
     "react-native-dropdown-select-list": "^2.0.4",

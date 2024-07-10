@@ -221,7 +221,7 @@ export default function (props) {
   };
 
   return (
-    <View style={{ maxHeight: "72%" }}>
+    <View style={{ flex: 1 }}>
       {/* <View style={{ marginBottom: 10, marginTop: 10 }}>
         <SelectList
           data={bookData}
@@ -264,11 +264,11 @@ export default function (props) {
           let offset = 30 * index;
 
           if (index > 0) {
-            offset += 35;
+            offset += 37;
           }
 
           if (index > 39) {
-            offset += 35;
+            offset += 37;
           }
 
           return {

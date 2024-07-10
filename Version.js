@@ -9,6 +9,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import MyButton from "./MyButton";
 const colors = require("./colors.json");
 
 export default function Version(props) {
@@ -42,7 +43,7 @@ export default function Version(props) {
           }}
         >
           <Text style={{ fontSize: 40, color: colors.bible.text[props.theme] }}>
-            Enjoying Bible Tabs?
+            What's new?
           </Text>
           <View style={{ padding: 12 }}>
             <Text
@@ -52,8 +53,46 @@ export default function Version(props) {
                 marginBottom: 20,
               }}
             >
-              If you're enjoying Bible Tabs, writing a quick review will help
-              others find it faster!
+              - Search function is now accessed by pulling down as if you were
+              refreshing the page
+            </Text>
+            <Text
+              style={{
+                color: colors.bible.text[props.theme],
+                fontSize: 20,
+                marginBottom: 20,
+              }}
+            >
+              - Press and hold on the book at the top of the page to open the
+              book overview in GotQuestions.org
+            </Text>
+            <Text
+              style={{
+                color: colors.bible.text[props.theme],
+                fontSize: 20,
+                marginBottom: 20,
+              }}
+            >
+              - New grey theme
+            </Text>
+            <Text
+              style={{
+                color: colors.bible.text[props.theme],
+                fontSize: 20,
+                marginBottom: 20,
+              }}
+            >
+              - Minor UI tweaks
+            </Text>
+
+            <Text
+              style={{
+                color: colors.bible.text[props.theme],
+                fontSize: 20,
+                marginBottom: 20,
+              }}
+            >
+              - Other bug fixes
             </Text>
             <Pressable onPress={openPlayStore}>
               <Text
@@ -64,21 +103,15 @@ export default function Version(props) {
                   textDecorationLine: "underline",
                 }}
               >
-                Open Play Store ➤
+                Review Bible Tabs ➤
               </Text>
             </Pressable>
-
-            <Text
-              style={{
-                color: colors.bible.text[props.theme],
-                fontSize: 20,
-                marginBottom: 20,
-              }}
-            ></Text>
           </View>
-          <Button
-            color={colors.bible.color[props.theme][props.color][0]}
-            title="done"
+          <MyButton
+            color={colors.bible.color[props.theme][props.color][1]}
+            textColor={colors.bible.text[props.theme]}
+            backgroundColor={colors.tab.tab.inactive[props.theme]}
+            title="Done"
             onPress={props.toggleOpen}
           />
         </View>

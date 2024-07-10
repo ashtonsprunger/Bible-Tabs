@@ -50,7 +50,8 @@
                 "green":[ "#00a120","#00a120"],
                 "blue":["#308aff","#308aff"],
                 "purple":["#ae00ff","#ae00ff"],
-                "pink":["#ff00ff","#ff00ff"]
+                "pink":["#ff00ff","#ff00ff"],
+                "gray": ["#636363","#636363"]
             },
             "sepia": {
                 "red": [ "#ff6161","#ff6161"],
@@ -59,7 +60,8 @@
                 "green":[ "#00a120","#00a120"], 
                 "blue":["#308aff","#308aff"],
                 "purple":["#ae00ff","#ae00ff"],
-                "pink":["#ff00ff","#ff00ff"]
+                "pink":["#ff00ff","#ff00ff"],
+                "gray": ["#636363","#636363"]
             },
             "dark": {
                 "red": ["#ff6161", "#ff6161"],
@@ -68,7 +70,8 @@
                 "green":[ "#00a120","#00a120"],   
                 "blue":["#5ea4ff","#82b8ff"],
                 "purple":["#ae00ff","#c13bff"],
-                "pink":["#ff00ff","#ff00ff"]
+                "pink":["#ff00ff","#ff00ff"],
+                "gray": ["#b5b5b5","#b5b5b5"]
             }            
         }
     }

@@ -10,6 +10,7 @@ import {
   View,
 } from "react-native";
 import Version from "./Version";
+import MyButton from "./MyButton";
 
 const colors = require("./colors.json");
 
@@ -282,6 +283,24 @@ export default function Settings(props) {
                 {props.color == "pink" ? "✓" : "   "}
               </Text>
             </TouchableOpacity>
+            <TouchableOpacity
+              style={{
+                backgroundColor: colors.bible.color[props.theme].gray[0],
+                padding: 3,
+                paddingHorizontal: 8,
+                borderWidth: 2,
+                borderColor: "black",
+              }}
+              onPress={() => {
+                setColor("gray");
+              }}
+            >
+              <Text
+                style={{ fontSize: 20, color: colors.bible.text[props.theme] }}
+              >
+                {props.color == "gray" ? "✓" : "   "}
+              </Text>
+            </TouchableOpacity>
           </View>
           <View
             style={{
@@ -307,6 +326,8 @@ export default function Settings(props) {
               <Text
                 style={{
                   fontSize: 15,
+                  textDecorationLine:
+                    props.textSize == "15" ? "underline" : "none",
                   color:
                     props.textSize == "15"
                       ? colors.bible.color[props.theme][props.color][1]
@@ -328,6 +349,8 @@ export default function Settings(props) {
               <Text
                 style={{
                   fontSize: 18,
+                  textDecorationLine:
+                    props.textSize == "18" ? "underline" : "none",
                   color:
                     props.textSize == "18"
                       ? colors.bible.color[props.theme][props.color][1]
@@ -349,6 +372,8 @@ export default function Settings(props) {
               <Text
                 style={{
                   fontSize: 24,
+                  textDecorationLine:
+                    props.textSize == "24" ? "underline" : "none",
                   color:
                     props.textSize == "24"
                       ? colors.bible.color[props.theme][props.color][1]
@@ -370,6 +395,8 @@ export default function Settings(props) {
               <Text
                 style={{
                   fontSize: 32,
+                  textDecorationLine:
+                    props.textSize == "32" ? "underline" : "none",
                   color:
                     props.textSize == "32"
                       ? colors.bible.color[props.theme][props.color][1]
@@ -391,6 +418,8 @@ export default function Settings(props) {
               <Text
                 style={{
                   fontSize: 40,
+                  textDecorationLine:
+                    props.textSize == "40" ? "underline" : "none",
                   color:
                     props.textSize == "40"
                       ? colors.bible.color[props.theme][props.color][1]
@@ -421,7 +450,10 @@ export default function Settings(props) {
               onPress={toggleRotate}
             >
               <Text
-                style={{ fontSize: 20, color: colors.bible.text[props.theme] }}
+                style={{
+                  fontSize: 20,
+                  color: colors.bible.color[props.theme][props.color][1],
+                }}
               >
                 {props.allowRotation == "true" ? "Any" : "Portrait"}
               </Text>
@@ -439,10 +471,12 @@ export default function Settings(props) {
               />
             </View>
             <View style={{ height: 20 }}></View>
-            <Button
-              title="done"
+            <MyButton
+              title="Done"
               onPress={toggleOpen}
-              color={colors.bible.color[props.theme][props.color][0]}
+              color={colors.bible.color[props.theme][props.color][1]}
+              textColor={colors.bible.text[props.theme]}
+              backgroundColor={colors.tab.tab.inactive[props.theme]}
             />
           </View>
         </View>
@@ -452,7 +486,12 @@ export default function Settings(props) {
           toggleOpen();
         }}
       >
-        <Text style={{ fontSize: 30, color: colors.bible.text[props.theme] }}>
+        <Text
+          style={{
+            fontSize: 30,
+            color: colors.bible.color[props.theme][props.color][1],
+          }}
+        >
           ⚙
         </Text>
       </Pressable>

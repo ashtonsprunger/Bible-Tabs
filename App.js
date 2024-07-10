@@ -29,6 +29,7 @@ import Settings from "./Settings";
 import * as NavigationBar from "expo-navigation-bar";
 import * as ScreenOrientation from "expo-screen-orientation";
 import Version from "./Version";
+import Search from "./Search";
 
 const updateBigEnough = true;
 
@@ -116,6 +117,12 @@ export default function App() {
   const [lastVersion, setLastVersion] = useState("");
 
   const [showNew, setShowNew] = useState(false);
+
+  const [showSearch, setShowSearch] = useState(false);
+
+  const toggleShowSearch = () => {
+    setShowSearch((oldValue) => !oldValue);
+  };
 
   const updateTextSize = () => {
     AsyncStorage.getItem("textSize").then((result) => {
@@ -228,6 +235,19 @@ export default function App() {
     });
   };
 
+  const updateReference = (newReference) => {
+    console.log(newReference);
+    let myTabs = JSON.parse(JSON.stringify(tabs));
+    myTabs[currentTab].reference = newReference.join(",");
+    AsyncStorage.setItem("tabs", JSON.stringify(myTabs)).then(() => {
+      updateLocalTabs();
+      setTimeout(() => {
+        setCurrentTab(-1);
+        setCurrentTab(currentTab);
+      }, 100);
+    });
+  };
+
   useEffect(() => {
     if (currentTab != undefined) {
       console.log("str curr", currentTab.toString());
@@ -320,6 +340,7 @@ export default function App() {
             textSize={textSize}
             updateTextSize={updateTextSize}
             key={item.index}
+            setShowSearch={setShowSearch}
           />
         ) : (
           <NewTab
@@ -335,8 +356,14 @@ export default function App() {
   };
 
   const updateTab = (index, newReference) => {
-    let oldTabs = JSON.parse(JSON.stringify(tabs));
-    oldTabs[index].reference = newReference;
+    // let oldTabs = JSON.parse(JSON.stringify(tabs));
+    // oldTabs[index].reference = newReference;
+    // setTabs(oldTabs);
+    setTabs((oldTabs) => {
+      oldTabs[index].reference = newReference;
+      console.log("oldTabs", oldTabs);
+      return oldTabs;
+    });
   };
 
   const onViewableItemsChanged = ({ viewableItems }) => {
@@ -348,9 +375,17 @@ export default function App() {
     <SafeAreaView
       style={{
         ...styles.container,
+        backgroundColor: colors.bible.background[theme],
+        flex: 1,
       }}
     >
-      <View>
+      {/* <View style={{ height: "100%", flexDirection: "column", flex: 1 }}> */}
+      <View
+        style={{
+          // flex: 1,
+          height: "auto",
+        }}
+      >
         <FlatList
           style={{
             backgroundColor: colors.tab.background[theme],
@@ -364,25 +399,56 @@ export default function App() {
           showsHorizontalScrollIndicator={false}
         />
       </View>
+      {showSearch ? (
+        <Search
+          theme={theme}
+          color={color}
+          updateReference={updateReference}
+          toggleShowSearch={toggleShowSearch}
+        />
+      ) : null}
+
       {tabs.map((tab, index) => {
         const book = tab.reference.split(",")[0];
         const chapter = tab.reference.split(",")[1];
         const verse = tab.reference.split(",")[2];
         return currentTab == index ? (
+          <View style={{ flex: 1 }}>
+            <Bible
+              index={index}
+              book={book}
+              chapter={chapter}
+              verse={verse}
+              updateTab={updateTab}
+              updateLocalTabs={updateLocalTabs}
+              theme={theme}
+              color={color}
+              key={index}
+              textSize={textSize}
+              toggleShowSearch={toggleShowSearch}
+              showSearch={showSearch}
+            />
+          </View>
+        ) : null;
+      })}
+      {/* {tabs.length > 0 && currentTab > -1 ? (
+        <View style={{ flex: 1 }}>
           <Bible
-            index={index}
-            book={book}
-            chapter={chapter}
-            verse={verse}
+            index={currentTab}
+            book={tabs[currentTab].reference.split(",")[0]}
+            chapter={tabs[currentTab].reference.split(",")[1]}
+            verse={tabs[currentTab].reference.split(",")[2]}
             updateTab={updateTab}
             updateLocalTabs={updateLocalTabs}
             theme={theme}
             color={color}
-            key={index}
+            // key={index}
             textSize={textSize}
+            toggleShowSearch={toggleShowSearch}
+            showSearch={showSearch}
           />
-        ) : null;
-      })}
+        </View>
+      ) : null} */}
       {tabs.length == 0 && currentTab != undefined ? (
         <Why theme={theme} />
       ) : null}
@@ -398,6 +464,7 @@ export default function App() {
         updateColor={updateColor}
         show={false}
       />
+      {/* </View> */}
     </SafeAreaView>
   );
 }
@@ -408,13 +475,13 @@ const scale = Dimensions.get("screen").scale;
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
+    // flex: 1,
     // justifyContent: "center",
     // alignItems: "center",
-    // backgroundColor: "orange",
     // padding: 12,
     // paddingBottom: 50,
-    // paddingTop: StatusBar.currentHeight,
+    paddingTop: StatusBar.currentHeight,
+    flexDirection: "column",
     // paddingTop: 50,
     // backgroundColor: "black",
     // flex: 1

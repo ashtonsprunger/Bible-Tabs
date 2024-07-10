@@ -13,6 +13,7 @@ import {
 
 import Browser from "./Browser";
 import Settings from "./Settings";
+import MyButton from "./MyButton";
 
 const colors = require("./colors.json");
 
@@ -84,7 +85,9 @@ export default function Tab(props) {
             // paddingTop: 60,
             height: "100%",
             backgroundColor: colors.bible.background[props.theme],
-            justifyContent: "space-between",
+            flexDirection: "column",
+            flex: 1,
+            // justifyContent: "space-between",
           }}
         >
           <View
@@ -131,17 +134,21 @@ export default function Tab(props) {
           />
           <View>
             <View style={{ marginTop: 15 }}>
-              <Button
+              <MyButton
                 color={colors.bible.color[props.theme].red[0]}
+                textColor={colors.bible.text[props.theme]}
+                backgroundColor={colors.tab.tab.inactive[props.theme]}
                 onPress={removeTab}
                 title="Remove Tab"
               />
             </View>
             <View style={{ marginTop: 15 }}>
-              <Button
+              <MyButton
                 onPress={toggleOpen}
                 title="Done"
-                color={colors.bible.color[props.theme][props.color][0]}
+                color={colors.bible.color[props.theme][props.color][1]}
+                textColor={colors.bible.text[props.theme]}
+                backgroundColor={colors.tab.tab.inactive[props.theme]}
               />
             </View>
           </View>
@@ -168,6 +175,7 @@ export default function Tab(props) {
             toggleOpen();
           } else {
             props.setCurrentTab(props.index);
+            props.setShowSearch(false);
           }
         }}
       >
