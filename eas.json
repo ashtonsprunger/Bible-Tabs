@@ -8,17 +8,35 @@
       "distribution": "internal",
       "ios": {
         "resourceClass": "m1-medium"
+      },
+      "android": {
+        "buildType": "apk",
+        "env": {
+          "EXPO_TARGET_SDK_VERSION": "34"
+        }
       }
     },
     "preview": {
       "distribution": "internal",
       "ios": {
         "resourceClass": "m1-medium"
+      },
+      "android": {
+        "buildType": "apk",
+        "env": {
+          "EXPO_TARGET_SDK_VERSION": "34"
+        }
       }
     },
     "production": {
       "ios": {
         "resourceClass": "m1-medium"
+      },
+      "android": {
+        "buildType": "app-bundle",
+        "env": {
+          "EXPO_TARGET_SDK_VERSION": "34"
+        }
       }
     }
   },

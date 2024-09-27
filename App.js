@@ -31,7 +31,7 @@ import * as ScreenOrientation from "expo-screen-orientation";
 import Version from "./Version";
 import Search from "./Search";
 
-const updateBigEnough = true;
+const updateBigEnough = false;
 
 const colors = require("./colors.json");
 
@@ -480,7 +480,7 @@ const styles = StyleSheet.create({
     // alignItems: "center",
     // padding: 12,
     // paddingBottom: 50,
-    paddingTop: StatusBar.currentHeight,
+    // paddingTop: StatusBar.currentHeight,
     flexDirection: "column",
     // paddingTop: 50,
     // backgroundColor: "black",

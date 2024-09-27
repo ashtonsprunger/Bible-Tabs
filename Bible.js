@@ -396,6 +396,14 @@ export default function Bible(props) {
       <FlatList
         // style={{ height: "80%" }}
         ref={ref}
+        onScrollToIndexFailed={(info) => {
+          const wait = new Promise((resolve) => setTimeout(resolve, 25));
+          wait.then(() => {
+            if (ref) {
+              ref.current.scrollToIndex({ index: info.index, animated: false });
+            }
+          });
+        }}
         // initialScrollIndex={index}
         data={chapterData}
         renderItem={renderItem}
