@@ -43,9 +43,18 @@ export default function Version(props) {
           }}
         >
           <Text style={{ fontSize: 40, color: colors.bible.text[props.theme] }}>
-            What's new?
+            Bible Tabs got updated!
           </Text>
           <View style={{ padding: 12 }}>
+                <Text
+                  style={{
+                    color: colors.bible.text[props.theme],
+                    fontSize: 20,
+                    marginBottom: 20,
+                  }}
+                >
+                  - When browsing for a chapter, the currently open chapter and book are highlighted to make it clear which chapter you came from.
+                </Text>
             <Text
               style={{
                 color: colors.bible.text[props.theme],
@@ -53,8 +62,25 @@ export default function Version(props) {
                 marginBottom: 20,
               }}
             >
-              - Search function is now accessed by pulling down as if you were
-              refreshing the page
+              - Visual tweaks to the buttons that move foward and backward between chapters
+            </Text>
+                <Text
+                  style={{
+                    color: colors.bible.text[props.theme],
+                    fontSize: 20,
+                    marginBottom: 20,
+                  }}
+                >
+                  
+                </Text>
+            <Text
+              style={{
+                color: colors.bible.text[props.theme],
+                fontSize: 20,
+                marginBottom: 20,
+              }}
+            >
+              Thanks for using Bible Tabs!
             </Text>
             <Text
               style={{
@@ -63,8 +89,7 @@ export default function Version(props) {
                 marginBottom: 20,
               }}
             >
-              - Press and hold on the book at the top of the page to open the
-              book overview in GotQuestions.org
+              ~~Ashton Sprunger~~
             </Text>
             <Text
               style={{
@@ -73,27 +98,9 @@ export default function Version(props) {
                 marginBottom: 20,
               }}
             >
-              - New grey theme
+              
             </Text>
-            <Text
-              style={{
-                color: colors.bible.text[props.theme],
-                fontSize: 20,
-                marginBottom: 20,
-              }}
-            >
-              - Minor UI tweaks
-            </Text>
-
-            <Text
-              style={{
-                color: colors.bible.text[props.theme],
-                fontSize: 20,
-                marginBottom: 20,
-              }}
-            >
-              - Other bug fixes
-            </Text>
+            
             <Pressable onPress={openPlayStore}>
               <Text
                 style={{

@@ -13,7 +13,8 @@
         "buildType": "apk",
         "env": {
           "EXPO_TARGET_SDK_VERSION": "34"
-        }
+        },
+        "image" : "latest"
       }
     },
     "preview": {
@@ -25,7 +26,8 @@
         "buildType": "apk",
         "env": {
           "EXPO_TARGET_SDK_VERSION": "34"
-        }
+        },
+        "image" : "latest"
       }
     },
     "production": {
@@ -36,7 +38,8 @@
         "buildType": "app-bundle",
         "env": {
           "EXPO_TARGET_SDK_VERSION": "34"
-        }
+        },
+        "image" : "latest"
       }
     }
   },

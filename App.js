@@ -15,8 +15,6 @@ import {
 } from "react-native";
 import Bible from "./Bible";
 import Tab from "./Tab";
-// import Carousel from "react-native-reanimated-carousel";
-import { getNavigationBarHeight } from "react-native-android-navbar-height";
 import Why from "./Why";
 import NewTab from "./NewTab";
 import Settings from "./Settings";
@@ -30,8 +28,10 @@ import * as NavigationBar from "expo-navigation-bar";
 import * as ScreenOrientation from "expo-screen-orientation";
 import Version from "./Version";
 import Search from "./Search";
+// import 'react-native-polyfill-globals/auto';
 
-const updateBigEnough = false;
+
+const updateBigEnough = true;
 
 const colors = require("./colors.json");
 

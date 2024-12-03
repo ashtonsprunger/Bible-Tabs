@@ -117,11 +117,20 @@ export default function (props) {
   const ref = useRef(FlatList);
 
   const scrollToBook = () => {
-    ref.current.scrollToIndex({ index: book, animated: true });
+    console.log("index to scroll: " + book)
+    console.log("index to scroll: " + book)
+    ref.current.scrollToIndex({ index: book, animated: false });
+    ref.current.scrollToIndex({ index: book, animated: false });
   };
 
   const renderItem = (item) => {
     let bookF = item.item;
+
+    if(!item.item){
+      return(
+        <View style={{height: 200}}></View>
+      )
+    }
 
     if (typeof bookF == "string") {
       return (
@@ -174,7 +183,8 @@ export default function (props) {
             style={{
               fontSize: 20,
               height: 30,
-              color: colors.bible.text[props.theme],
+              color: bookData[props.reference[0]].book == bookF.book ? colors.bible.color[props.theme][props.color][1]: colors.bible.text[props.theme],
+              fontWeight: bookData[props.reference[0]].book == bookF.book ? "600": null
             }}
           >
             {bookF.book}
@@ -202,9 +212,11 @@ export default function (props) {
                           <Text
                             style={{
                               fontSize: 20,
-                              color: "rgb(150,150,150)",
+                              // color: "rgb(150,150,150)",
+                              color: bookData[props.reference[0]].book == bookF.book && props.reference[1] == chapter ? colors.bible.color[props.theme][props.color][1]: "rgb(150,150,150)",
                               width: "100%",
                               textAlign: "center",
+                              fontWeight: bookData[props.reference[0]].book == bookF.book && props.reference[1] == chapter ? "600": null,
                             }}
                           >
                             {chapter}
@@ -221,7 +233,8 @@ export default function (props) {
   };
 
   return (
-    <View style={{ flex: 1 }}>
+    //!! this is problematic
+    <View style={{ flex: 0, height: "100%" }}>
       {/* <View style={{ marginBottom: 10, marginTop: 10 }}>
         <SelectList
           data={bookData}
@@ -250,16 +263,16 @@ export default function (props) {
         ) : null}
       </View> */}
       <FlatList
+        // style={{ flex: 1 }}
         ref={ref}
         data={[
           "Old Testament",
           ...bookData.slice(0, 39),
           "New Testament",
-          ...bookData.slice(39, 66),
+          ...bookData.slice(39, 66),null
         ]}
         renderItem={renderItem}
-        initialNumToRender={68}
-        onLayout={scrollToBook}
+        initialNumToRender={69}
         getItemLayout={(data, index) => {
           let offset = 30 * index;
 
@@ -277,6 +290,8 @@ export default function (props) {
             index,
           };
         }}
+        onLayout={scrollToBook}
+        
       />
     </View>
   );

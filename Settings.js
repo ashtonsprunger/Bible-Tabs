@@ -489,7 +489,8 @@ export default function Settings(props) {
         <Text
           style={{
             fontSize: 30,
-            color: colors.bible.color[props.theme][props.color][1],
+            fontWeight: "500",
+            color: colors.bible.text[props.theme],
           }}
         >
           ⚙

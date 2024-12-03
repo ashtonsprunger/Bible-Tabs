@@ -131,8 +131,10 @@ export default function Tab(props) {
             updateReference={updateReference}
             toggleOpen={toggleOpen}
             theme={props.theme}
+            color={props.color}
           />
-          <View>
+          <View
+          style={{position: "absolute", width: "100%", left: 12, bottom:12}}>
             <View style={{ marginTop: 15 }}>
               <MyButton
                 color={colors.bible.color[props.theme].red[0]}
