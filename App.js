@@ -31,7 +31,7 @@ import Search from "./Search";
 // import 'react-native-polyfill-globals/auto';
 
 
-const updateBigEnough = true;
+const updateBigEnough = false;
 
 const colors = require("./colors.json");
 
