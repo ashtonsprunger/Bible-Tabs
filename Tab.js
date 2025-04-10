@@ -22,7 +22,9 @@ export default function Tab(props) {
   const [tabName, setTabName] = useState(props.tabs[props.index].name);
 
   useEffect(() => {
-    // props.updateStatusBarColor();
+    // setTimeout(() => {
+    //   props.updateStatusBarColor();
+    // }, 500);
   }, [modalOpen]);
 
   const changeTabName = (e) => {
@@ -134,7 +136,7 @@ export default function Tab(props) {
             color={props.color}
           />
           <View
-          style={{position: "absolute", width: "100%", left: 12, bottom:12}}>
+            style={{ position: "absolute", width: "100%", left: 12, bottom: 12 }}>
             <View style={{ marginTop: 15 }}>
               <MyButton
                 color={colors.bible.color[props.theme].red[0]}
@@ -193,8 +195,8 @@ export default function Tab(props) {
           {props.tabs[props.index].name
             ? props.tabs[props.index].name
             : props.books[props.tabs[props.index].reference.split(",")[0]] +
-              " " +
-              props.tabs[props.index].reference.split(",")[1]}
+            " " +
+            props.tabs[props.index].reference.split(",")[1]}
         </Text>
       </Pressable>
     </>

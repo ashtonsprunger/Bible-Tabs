@@ -220,7 +220,14 @@ export default function App() {
       theme == "light" || theme == "sepia" ? "dark-content" : "light-content",
       true
     );
-    NavigationBar.setBackgroundColorAsync(colors.tab.background[theme]);
+    // NavigationBar.setBackgroundColorAsync(colors.tab.background[theme]);
+    // NavigationBar.setBackgroundColorAsync("transparent")
+    // enables edge-to-edge mode
+    NavigationBar.setPositionAsync('absolute')
+    // transparent backgrounds to see through
+    NavigationBar.setBackgroundColorAsync('#ffffff00')
+    // changes the color of the button icons "dark||light"
+    NavigationBar.setButtonStyleAsync("dark");
   };
 
   const updateCurrentTab = () => {
