@@ -37,6 +37,12 @@ function escapeRegExp(str: string): string {
   return str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
+function buildSmartQuotePattern(str: string): string {
+  return escapeRegExp(str)
+    .replace(/['\u2018\u2019\u02BC]/g, "['\\u2018\\u2019\\u02BC]")
+    .replace(/["\u201C\u201D]/g, '["\\u201C\\u201D]');
+}
+
 function renderTextWithBoldMatches(
   text: string,
   keyword: string
@@ -45,17 +51,16 @@ function renderTextWithBoldMatches(
     return text;
   }
 
-  const escaped = escapeRegExp(keyword);
-  const regex = new RegExp(`(${escaped})`, "gi");
+  const pattern = buildSmartQuotePattern(keyword);
+  const regex = new RegExp(`(${pattern})`, "gi");
   const parts = text.split(regex);
 
   if (parts.length === 1) {
     return text;
   }
 
-  const lowerKeyword = keyword.toLowerCase();
   return parts.map((part, idx) =>
-    part.toLowerCase() === lowerKeyword ? (
+    idx % 2 === 1 ? (
       <Text key={idx} style={styles.boldMatch}>
         {part}
       </Text>
@@ -246,6 +251,14 @@ export default function SearchPanel({
                         item.verse
                       )} `}
                     </Text>
+                    {item.superscription ? (
+                      <Text style={styles.resultSuperscription}>
+                        {renderTextWithBoldMatches(
+                          `${item.superscription} `,
+                          matchedQuery
+                        )}
+                      </Text>
+                    ) : null}
                     <Text>
                       {renderTextWithBoldMatches(item.text, matchedQuery)}
                     </Text>
@@ -340,6 +353,10 @@ const styles = StyleSheet.create({
   },
   resultCitation: {
     fontWeight: "600",
+  },
+  resultSuperscription: {
+    fontStyle: "italic",
+    opacity: 0.82,
   },
   resultVerseText: {
     fontSize: 16,

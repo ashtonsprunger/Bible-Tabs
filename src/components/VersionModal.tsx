@@ -50,10 +50,13 @@ export default function VersionModal({ navigation }: VersionScreenProps) {
 
       <View style={styles.body}>
         <Text style={[styles.paragraph, { color: textColor }]}>
-          - Continuous smooth scrolling through the entire Bible, with instant startup and live search.
+          - Print-style Bible typesetting: flowing paragraphs, indented poetry, section headings, Psalm titles, Selah, and translator footnotes.
         </Text>
         <Text style={[styles.paragraph, { color: textColor }]}>
-          - Long-press any verse to copy or share, and jump directly to references from Search.
+          - Continuous smooth scrolling through the entire Bible, instant startup, live search, and long-press verse actions.
+        </Text>
+        <Text style={[styles.creditParagraph, { color: textColor }]}>
+          Scripture text: Berean Standard Bible (BSB) — Public Domain (CC0).
         </Text>
         <Text style={[styles.paragraph, { color: textColor }]}>
           Thanks for using Bible Tabs!
@@ -93,8 +96,13 @@ const styles = StyleSheet.create({
     padding: 12,
   },
   paragraph: {
-    fontSize: 20,
-    marginBottom: 20,
+    fontSize: 19,
+    marginBottom: 16,
+  },
+  creditParagraph: {
+    fontSize: 15,
+    opacity: 0.72,
+    marginBottom: 16,
   },
   reviewLink: {
     fontSize: 20,

@@ -234,7 +234,7 @@ export default function App() {
   return (
     <SafeAreaProvider>
       <SQLiteProvider
-        databaseName="bible_v1.db"
+        databaseName="bible_bsb_v2.db"
         assetSource={{ assetId: require("./assets/bible.db") }}
       >
         <RootNavigator />
