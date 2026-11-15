@@ -12,6 +12,7 @@
     "android": {
       "package": "ashtonsprunger.bibletabs",
       "versionCode": 26,
+      "predictiveBackGestureEnabled": true,
       "icon": "./assets/icon.png",
       "adaptiveIcon": {
         "foregroundImage": "./assets/foreground.png",

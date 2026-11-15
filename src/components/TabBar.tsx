@@ -1,6 +1,6 @@
-import React from "react";
+import React, { useEffect, useRef } from "react";
 import { FlatList, Pressable, StyleSheet, Text, View } from "react-native";
-import { BOOKS, parseReference } from "../constants/books";
+import { formatChapterLabel, parseReference } from "../constants/books";
 import { colors } from "../constants/colors";
 import type { RuntimeTab } from "../store/useAppStore";
 import type { AccentColorName, ThemeName } from "../types";
@@ -28,14 +28,42 @@ export default function TabBar({
   onOpenActiveTabModal,
   onAddTab,
 }: TabBarProps) {
+  const listRef = useRef<FlatList<ListEntry>>(null);
+  const prevTabRef = useRef<{ currentTab: number; count: number }>({
+    currentTab,
+    count: tabs.length,
+  });
+
   const entries: ListEntry[] = [
     ...tabs.map((tab, index) => ({ kind: "tab" as const, tab, index })),
     { kind: "newTab" as const },
   ];
 
+  useEffect(() => {
+    const prev = prevTabRef.current;
+    const didChange =
+      prev.currentTab !== currentTab || prev.count !== tabs.length;
+    prevTabRef.current = { currentTab, count: tabs.length };
+
+    if (!didChange || tabs.length === 0 || currentTab >= tabs.length) {
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      listRef.current?.scrollToIndex({
+        index: currentTab,
+        animated: true,
+        viewPosition: 0.5,
+      });
+    }, 30);
+
+    return () => clearTimeout(timer);
+  }, [currentTab, tabs.length]);
+
   return (
     <View style={styles.wrapper}>
       <FlatList
+        ref={listRef}
         style={{ backgroundColor: colors.tab.background[theme] }}
         data={entries}
         keyExtractor={(item) =>
@@ -43,6 +71,15 @@ export default function TabBar({
         }
         horizontal
         showsHorizontalScrollIndicator={false}
+        onScrollToIndexFailed={({ index }) => {
+          setTimeout(() => {
+            listRef.current?.scrollToIndex({
+              index: Math.min(index, Math.max(0, entries.length - 1)),
+              animated: true,
+              viewPosition: 0.5,
+            });
+          }, 80);
+        }}
         renderItem={({ item }) => {
           if (item.kind === "newTab") {
             return (
@@ -61,7 +98,7 @@ export default function TabBar({
 
           const isActive = item.index === currentTab;
           const ref = parseReference(item.tab.reference);
-          const defaultLabel = `${BOOKS[ref.book].book} ${ref.chapter}`;
+          const defaultLabel = formatChapterLabel(ref.book, ref.chapter);
           const label = item.tab.name ? item.tab.name : defaultLabel;
 
           return (

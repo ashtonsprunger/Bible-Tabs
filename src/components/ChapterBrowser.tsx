@@ -40,7 +40,7 @@ export default function ChapterBrowser({
   onSelectChapter,
 }: ChapterBrowserProps) {
   const [openBookIndex, setOpenBookIndex] = useState<number | null>(
-    currentReference.book
+    BOOKS[currentReference.book]?.chapters === 1 ? null : currentReference.book
   );
   const listRef = useRef<FlashListRef<BrowserRow>>(null);
 
@@ -67,7 +67,9 @@ export default function ChapterBrowser({
   };
 
   useEffect(() => {
-    setOpenBookIndex(currentReference.book);
+    setOpenBookIndex(
+      BOOKS[currentReference.book]?.chapters === 1 ? null : currentReference.book
+    );
     const targetRow = bookToRowIndex(currentReference.book);
     const timer = setTimeout(() => {
       listRef.current?.scrollToIndex({ index: targetRow, animated: false });
@@ -118,6 +120,10 @@ export default function ChapterBrowser({
             <View>
               <Pressable
                 onPress={() => {
+                  if (book.chapters === 1) {
+                    onSelectChapter(book.index, 1);
+                    return;
+                  }
                   if (isExpanded) {
                     setOpenBookIndex(null);
                   } else {

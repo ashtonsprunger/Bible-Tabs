@@ -26,6 +26,7 @@ const LEGACY_KEYS = [
 
 export interface RuntimeTab extends TabItem {
   navVersion: number;
+  highlightRef?: string | null;
 }
 
 let nextTabCounter = 1;
@@ -201,8 +202,13 @@ export interface AppState extends HydratedSnapshot {
   addTab: () => void;
   removeTab: (index: number) => void;
   renameTab: (index: number, name: string, trimForStorage?: boolean) => void;
-  jumpTabToReference: (index: number, ref: BibleReference) => void;
-  jumpCurrentTabToReference: (ref: BibleReference) => void;
+  flushTabs: () => void;
+  jumpTabToReference: (
+    index: number,
+    ref: BibleReference,
+    highlight?: boolean
+  ) => void;
+  jumpCurrentTabToReference: (ref: BibleReference, highlight?: boolean) => void;
   syncScrolledReference: (index: number, refString: string) => void;
   setTheme: (theme: ThemeName) => void;
   setColor: (color: AccentColorName) => void;
@@ -294,7 +300,8 @@ export const useAppStore = create<AppState>((set, get) => ({
   removeTab: (index) => {
     const { tabs } = get();
     const nextTabs = tabs.filter((_, i) => i !== index);
-    const nextCurrent = nextTabs.length === 0 ? 0 : 0; // Matches original behavior resetting to tab 0
+    const nextCurrent =
+      nextTabs.length === 0 ? 0 : Math.min(index, nextTabs.length - 1);
     flushTabsToStorage(nextTabs);
     kvSetSync("lastTab", String(nextCurrent));
     set({ tabs: nextTabs, currentTab: nextCurrent });
@@ -311,22 +318,31 @@ export const useAppStore = create<AppState>((set, get) => ({
     set({ tabs: nextTabs });
   },
 
-  jumpTabToReference: (index, ref) => {
+  flushTabs: () => {
+    flushTabsToStorage(get().tabs);
+  },
+
+  jumpTabToReference: (index, ref, highlight = false) => {
     const { tabs } = get();
     if (!tabs[index]) return;
     const formatted = formatReference(ref);
     const nextTabs = tabs.map((t, i) =>
       i === index
-        ? { ...t, reference: formatted, navVersion: t.navVersion + 1 }
+        ? {
+            ...t,
+            reference: formatted,
+            navVersion: t.navVersion + 1,
+            highlightRef: highlight ? formatted : null,
+          }
         : t
     );
     flushTabsToStorage(nextTabs);
     set({ tabs: nextTabs });
   },
 
-  jumpCurrentTabToReference: (ref) => {
+  jumpCurrentTabToReference: (ref, highlight = true) => {
     const { currentTab, jumpTabToReference } = get();
-    jumpTabToReference(currentTab, ref);
+    jumpTabToReference(currentTab, ref, highlight);
   },
 
   syncScrolledReference: (index, refString) => {

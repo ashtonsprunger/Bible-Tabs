@@ -1,5 +1,7 @@
 import type { BibleReference, BookInfo } from "../types";
 
+export const PSALMS_BOOK_INDEX = 18;
+
 export const BOOKS: readonly BookInfo[] = [
   { index: 0, book: "Genesis", chapters: 50, verses: 1533 },
   { index: 1, book: "Exodus", chapters: 40, verses: 1213 },
@@ -69,6 +71,179 @@ export const BOOKS: readonly BookInfo[] = [
   { index: 65, book: "Revelation", chapters: 22, verses: 404 },
 ] as const;
 
+const BOOK_ALIASES: Readonly<Record<string, number>> = {
+  gen: 0,
+  gn: 0,
+  ex: 1,
+  exo: 1,
+  exod: 1,
+  lev: 2,
+  lv: 2,
+  num: 3,
+  nm: 3,
+  deut: 4,
+  dt: 4,
+  josh: 5,
+  judg: 6,
+  jdg: 6,
+  ru: 7,
+  "1sam": 8,
+  "1sm": 8,
+  "2sam": 9,
+  "2sm": 9,
+  "1kgs": 10,
+  "1ki": 10,
+  "2kgs": 11,
+  "2ki": 11,
+  "1chr": 12,
+  "1ch": 12,
+  "2chr": 13,
+  "2ch": 13,
+  ezr: 14,
+  neh: 15,
+  est: 16,
+  esth: 16,
+  jb: 17,
+  ps: 18,
+  psa: 18,
+  psalm: 18,
+  psalms: 18,
+  psm: 18,
+  prov: 19,
+  prv: 19,
+  pr: 19,
+  eccl: 20,
+  ecc: 20,
+  song: 21,
+  sos: 21,
+  songofsongs: 21,
+  songofsolomon: 21,
+  isa: 22,
+  is: 22,
+  jer: 23,
+  lam: 24,
+  ezek: 25,
+  ezk: 25,
+  dan: 26,
+  dn: 26,
+  hos: 27,
+  jl: 28,
+  am: 29,
+  obad: 30,
+  ob: 30,
+  jon: 31,
+  jnh: 31,
+  mic: 32,
+  nah: 33,
+  hab: 34,
+  zeph: 35,
+  zep: 35,
+  hag: 36,
+  zech: 37,
+  zec: 37,
+  mal: 38,
+  matt: 39,
+  mt: 39,
+  mat: 39,
+  mk: 40,
+  mrk: 40,
+  lk: 41,
+  luk: 41,
+  jn: 42,
+  jhn: 42,
+  act: 43,
+  ac: 43,
+  rom: 44,
+  rm: 44,
+  "1cor": 45,
+  "1co": 45,
+  "2cor": 46,
+  "2co": 46,
+  gal: 47,
+  eph: 48,
+  phil: 49,
+  php: 49,
+  col: 50,
+  "1thess": 51,
+  "1th": 51,
+  "2thess": 52,
+  "2th": 52,
+  "1tim": 53,
+  "1ti": 53,
+  "2tim": 54,
+  "2ti": 54,
+  tit: 55,
+  phlm: 56,
+  phm: 56,
+  heb: 57,
+  jas: 58,
+  jam: 58,
+  jm: 58,
+  "1pet": 59,
+  "1pe": 59,
+  "1pt": 59,
+  "2pet": 60,
+  "2pe": 60,
+  "2pt": 60,
+  "1jn": 61,
+  "1jhn": 61,
+  "2jn": 62,
+  "2jhn": 62,
+  "3jn": 63,
+  "3jhn": 63,
+  jud: 64,
+  rev: 65,
+  rv: 65,
+  revelations: 65,
+};
+
+/**
+ * Singular book name when referring to a specific chapter/Psalm ("Psalm" instead of "Psalms").
+ */
+export function getChapterBookName(bookIndex: number): string {
+  if (bookIndex === PSALMS_BOOK_INDEX) {
+    return "Psalm";
+  }
+  return BOOKS[bookIndex]?.book ?? "Genesis";
+}
+
+/**
+ * Formats a chapter-level label for tab titles, placeholders, and headings:
+ * - Psalms -> "Psalm 23"
+ * - Single-chapter books -> "Jude", "Philemon", etc.
+ * - All others -> "Romans 8"
+ */
+export function formatChapterLabel(bookIndex: number, chapter: number): string {
+  const info = BOOKS[bookIndex];
+  if (!info) {
+    return "Genesis 1";
+  }
+  if (info.chapters === 1) {
+    return info.book;
+  }
+  return `${getChapterBookName(bookIndex)} ${chapter}`;
+}
+
+/**
+ * Formats a verse-level citation for search results, copy, and share:
+ * - Psalms -> "Psalm 23:1"
+ * - Single-chapter books -> "Jude 1:3"
+ * - All others -> "John 3:16"
+ */
+export function formatVerseCitation(
+  bookIndex: number,
+  chapter: number,
+  verse: number
+): string {
+  return `${getChapterBookName(bookIndex)} ${chapter}:${verse}`;
+}
+
+export function getGotQuestionsBookUrl(bookIndex: number): string {
+  const bookName = BOOKS[bookIndex]?.book ?? "Genesis";
+  const slug = bookName.split(" ").join("-");
+  return `https://www.gotquestions.org/book-of-${slug}.html`;
+}
+
 export function parseReference(raw: string | undefined | null): BibleReference {
   if (!raw || typeof raw !== "string") {
     return { book: 0, chapter: 1, verse: 1 };
@@ -95,29 +270,146 @@ export function formatReference(ref: BibleReference): string {
   return `${ref.book},${ref.chapter},${ref.verse}`;
 }
 
-export function getPreviousChapter(
-  book: number,
-  chapter: number
-): { book: number; chapter: number } | null {
-  if (book === 0 && chapter === 1) {
-    return null;
-  }
-  if (chapter > 1) {
-    return { book, chapter: chapter - 1 };
-  }
-  const prevBook = book - 1;
-  return { book: prevBook, chapter: BOOKS[prevBook].chapters };
+export interface ParsedHumanReference {
+  ref: BibleReference;
+  hasExplicitNumber: boolean;
+  hasExplicitVerse: boolean;
+  label: string;
 }
 
-export function getNextChapter(
-  book: number,
-  chapter: number
-): { book: number; chapter: number } | null {
-  if (book === BOOKS.length - 1 && chapter >= BOOKS[book].chapters) {
+function resolveBookToken(rawBook: string): number | null {
+  const normalized = rawBook
+    .toLowerCase()
+    .replace(/\./g, "")
+    .replace(/^iii\s+/, "3")
+    .replace(/^ii\s+/, "2")
+    .replace(/^i\s+/, "1")
+    .replace(/^first\s+/, "1")
+    .replace(/^second\s+/, "2")
+    .replace(/^third\s+/, "3")
+    .replace(/\s+/g, "");
+
+  if (!normalized) {
     return null;
   }
-  if (chapter < BOOKS[book].chapters) {
-    return { book, chapter: chapter + 1 };
+
+  const aliasHit = BOOK_ALIASES[normalized];
+  if (aliasHit !== undefined) {
+    return aliasHit;
   }
-  return { book: book + 1, chapter: 1 };
+
+  // Exact match on normalized full book name
+  for (const b of BOOKS) {
+    const cleanName = b.book.toLowerCase().replace(/\s+/g, "");
+    if (cleanName === normalized) {
+      return b.index;
+    }
+  }
+
+  // Prefix match when user typed at least 3 chars (e.g. "rom", "phil", "1cor")
+  if (normalized.length >= 3) {
+    for (const b of BOOKS) {
+      const cleanName = b.book.toLowerCase().replace(/\s+/g, "");
+      if (cleanName.startsWith(normalized)) {
+        return b.index;
+      }
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Parses natural human references like "John 3:16", "ps 23", "1 cor 13:4", "jude 3".
+ */
+export function parseHumanReference(input: string): ParsedHumanReference | null {
+  const trimmed = input.trim();
+  if (!trimmed) {
+    return null;
+  }
+
+  const match = trimmed.match(
+    /^((?:[123]|i{1,3}|first|second|third)?\s*[a-zA-Z][a-zA-Z.\s]*?)(?:\s+(\d+)(?:\s*[:.,\s]\s*(\d+))?)?$/i
+  );
+  if (!match) {
+    return null;
+  }
+
+  const bookPart = match[1] ?? "";
+  const firstNumRaw = match[2];
+  const secondNumRaw = match[3];
+
+  // If no chapter/verse number is given, require at least 3 characters or an exact full name (avoid matching "is", "am", etc. as bare word searches)
+  const bookIndex = resolveBookToken(bookPart);
+  if (bookIndex === null) {
+    return null;
+  }
+
+  const bookInfo = BOOKS[bookIndex];
+  if (!firstNumRaw) {
+    const cleanBook = bookInfo.book.toLowerCase().replace(/\s+/g, "");
+    const cleanTyped = bookPart.toLowerCase().replace(/[\s.]+/g, "");
+    const isPsalmSingular =
+      bookIndex === PSALMS_BOOK_INDEX && cleanTyped === "psalm";
+    if (cleanTyped.length < 3 || (!cleanBook.startsWith(cleanTyped) && !isPsalmSingular)) {
+      return null;
+    }
+
+    const ref: BibleReference = { book: bookIndex, chapter: 1, verse: 1 };
+    return {
+      ref,
+      hasExplicitNumber: false,
+      hasExplicitVerse: false,
+      label: formatChapterLabel(bookIndex, 1),
+    };
+  }
+
+  const firstNum = Number.parseInt(firstNumRaw, 10);
+  if (!Number.isFinite(firstNum) || firstNum < 1) {
+    return null;
+  }
+
+  // Single-chapter book convenience: "Jude 3" -> Jude 1:3
+  if (bookInfo.chapters === 1 && !secondNumRaw && firstNum > 1) {
+    if (firstNum > bookInfo.verses) {
+      return null;
+    }
+    const ref: BibleReference = { book: bookIndex, chapter: 1, verse: firstNum };
+    return {
+      ref,
+      hasExplicitNumber: true,
+      hasExplicitVerse: true,
+      label: formatVerseCitation(bookIndex, 1, firstNum),
+    };
+  }
+
+  if (firstNum > bookInfo.chapters) {
+    return null;
+  }
+
+  if (secondNumRaw) {
+    const verseNum = Number.parseInt(secondNumRaw, 10);
+    if (!Number.isFinite(verseNum) || verseNum < 1) {
+      return null;
+    }
+    const ref: BibleReference = {
+      book: bookIndex,
+      chapter: firstNum,
+      verse: verseNum,
+    };
+    return {
+      ref,
+      hasExplicitNumber: true,
+      hasExplicitVerse: true,
+      label: formatVerseCitation(bookIndex, firstNum, verseNum),
+    };
+  }
+
+  const ref: BibleReference = { book: bookIndex, chapter: firstNum, verse: 1 };
+  return {
+    ref,
+    hasExplicitNumber: true,
+    hasExplicitVerse: false,
+    label: formatChapterLabel(bookIndex, firstNum),
+  };
 }

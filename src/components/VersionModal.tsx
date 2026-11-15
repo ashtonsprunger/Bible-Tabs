@@ -1,26 +1,21 @@
+import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import Constants from "expo-constants";
+import { StatusBar } from "expo-status-bar";
 import React from "react";
-import { Linking, Modal, Pressable, StyleSheet, Text, View } from "react-native";
-import type { EdgeInsets } from "react-native-safe-area-context";
+import { Linking, Pressable, StyleSheet, Text, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { colors } from "../constants/colors";
-import type { AccentColorName, ThemeName } from "../types";
+import { useAppStore } from "../store/useAppStore";
+import type { RootStackParamList } from "../types";
 import MyButton from "./MyButton";
 
-interface VersionModalProps {
-  visible: boolean;
-  onClose: () => void;
-  theme: ThemeName;
-  color: AccentColorName;
-  insets: EdgeInsets;
-}
+type VersionScreenProps = NativeStackScreenProps<RootStackParamList, "Version">;
 
-export default function VersionModal({
-  visible,
-  onClose,
-  theme,
-  color,
-  insets,
-}: VersionModalProps) {
+export default function VersionModal({ navigation }: VersionScreenProps) {
+  const insets = useSafeAreaInsets();
+  const theme = useAppStore((s) => s.theme);
+  const color = useAppStore((s) => s.color);
+
   const pkg =
     Constants.expoConfig?.android?.package ?? "ashtonsprunger.bibletabs";
 
@@ -38,55 +33,50 @@ export default function VersionModal({
   const textColor = colors.bible.text[theme];
 
   return (
-    <Modal
-      visible={visible}
-      animationType="slide"
-      onRequestClose={onClose}
+    <View
+      style={[
+        styles.container,
+        {
+          backgroundColor: colors.bible.background[theme],
+          paddingTop: insets.top + 8,
+          paddingBottom: Math.max(12, insets.bottom + 8),
+        },
+      ]}
     >
-      <View
-        style={[
-          styles.container,
-          {
-            backgroundColor: colors.bible.background[theme],
-            paddingTop: Math.max(12, insets.top + 8),
-            paddingBottom: Math.max(12, insets.bottom + 12),
-          },
-        ]}
-      >
-        <Text style={[styles.heading, { color: textColor }]}>
-          Bible Tabs got updated!
+      <StatusBar style={theme === "dark" ? "light" : "dark"} />
+      <Text style={[styles.heading, { color: textColor }]}>
+        Bible Tabs got updated!
+      </Text>
+
+      <View style={styles.body}>
+        <Text style={[styles.paragraph, { color: textColor }]}>
+          - Continuous smooth scrolling through the entire Bible, with instant startup and live search.
+        </Text>
+        <Text style={[styles.paragraph, { color: textColor }]}>
+          - Long-press any verse to copy or share, and jump directly to references from Search.
+        </Text>
+        <Text style={[styles.paragraph, { color: textColor }]}>
+          Thanks for using Bible Tabs!
+        </Text>
+        <Text style={[styles.paragraph, { color: textColor }]}>
+          ~~Ashton Sprunger~~
         </Text>
 
-        <View style={styles.body}>
-          <Text style={[styles.paragraph, { color: textColor }]}>
-            - Under-the-hood modernization for faster startup, instant chapter switching, and smoother scrolling.
+        <Pressable onPress={openPlayStore}>
+          <Text style={[styles.reviewLink, { color: textColor }]}>
+            Review Bible Tabs ➤
           </Text>
-          <Text style={[styles.paragraph, { color: textColor }]}>
-            - Updated layout compatibility for modern Android displays while keeping your saved tabs intact.
-          </Text>
-          <Text style={[styles.paragraph, { color: textColor }]}>
-            Thanks for using Bible Tabs!
-          </Text>
-          <Text style={[styles.paragraph, { color: textColor }]}>
-            ~~Ashton Sprunger~~
-          </Text>
-
-          <Pressable onPress={openPlayStore}>
-            <Text style={[styles.reviewLink, { color: textColor }]}>
-              Review Bible Tabs ➤
-            </Text>
-          </Pressable>
-        </View>
-
-        <MyButton
-          color={colors.bible.color[theme][color][1]}
-          textColor={textColor}
-          backgroundColor={colors.tab.tab.inactive[theme]}
-          title="Done"
-          onPress={onClose}
-        />
+        </Pressable>
       </View>
-    </Modal>
+
+      <MyButton
+        color={colors.bible.color[theme][color][1]}
+        textColor={textColor}
+        backgroundColor={colors.tab.tab.inactive[theme]}
+        title="Done"
+        onPress={() => navigation.goBack()}
+      />
+    </View>
   );
 }
 

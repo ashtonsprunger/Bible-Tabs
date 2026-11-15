@@ -1,88 +1,68 @@
+import {
+  DarkTheme,
+  DefaultTheme,
+  NavigationContainer,
+  useIsFocused,
+} from "@react-navigation/native";
+import {
+  createNativeStackNavigator,
+  type NativeStackScreenProps,
+} from "@react-navigation/native-stack";
 import { NavigationBar } from "expo-navigation-bar";
 import * as ScreenOrientation from "expo-screen-orientation";
 import { SQLiteProvider } from "expo-sqlite";
 import { StatusBar } from "expo-status-bar";
-import React, { useEffect, useState } from "react";
-import { Platform, StyleSheet, View } from "react-native";
+import React, { useEffect, useMemo } from "react";
+import { BackHandler, Platform, StyleSheet, View } from "react-native";
 import {
   SafeAreaProvider,
   useSafeAreaInsets,
 } from "react-native-safe-area-context";
 import BibleReader from "./src/components/BibleReader";
 import SearchPanel from "./src/components/SearchPanel";
+import SettingsModal from "./src/components/SettingsModal";
 import TabBar from "./src/components/TabBar";
 import TabModal from "./src/components/TabModal";
+import VersionModal from "./src/components/VersionModal";
 import WhyEmpty from "./src/components/WhyEmpty";
 import { colors } from "./src/constants/colors";
 import { useAppStore } from "./src/store/useAppStore";
+import type { RootStackParamList } from "./src/types";
 
-function MainScreen() {
+const Stack = createNativeStackNavigator<RootStackParamList>();
+
+type HomeScreenProps = NativeStackScreenProps<RootStackParamList, "Home">;
+
+function HomeScreen({ navigation }: HomeScreenProps) {
   const insets = useSafeAreaInsets();
-  const [tabModalOpen, setTabModalOpen] = useState(false);
+  const isFocused = useIsFocused();
 
-  const isHydrated = useAppStore((s) => s.isHydrated);
-  const hydrateFromLegacyIfNeeded = useAppStore(
-    (s) => s.hydrateFromLegacyIfNeeded
-  );
   const tabs = useAppStore((s) => s.tabs);
   const currentTab = useAppStore((s) => s.currentTab);
   const theme = useAppStore((s) => s.theme);
   const color = useAppStore((s) => s.color);
   const textSize = useAppStore((s) => s.textSize);
-  const allowRotation = useAppStore((s) => s.allowRotation);
   const showSearch = useAppStore((s) => s.showSearch);
 
   const setCurrentTab = useAppStore((s) => s.setCurrentTab);
   const addTab = useAppStore((s) => s.addTab);
-  const removeTab = useAppStore((s) => s.removeTab);
-  const renameTab = useAppStore((s) => s.renameTab);
-  const jumpTabToReference = useAppStore((s) => s.jumpTabToReference);
   const jumpCurrentTabToReference = useAppStore(
     (s) => s.jumpCurrentTabToReference
   );
   const syncScrolledReference = useAppStore((s) => s.syncScrolledReference);
-  const setTheme = useAppStore((s) => s.setTheme);
-  const setColor = useAppStore((s) => s.setColor);
-  const setTextSize = useAppStore((s) => s.setTextSize);
-  const toggleRotation = useAppStore((s) => s.toggleRotation);
   const setShowSearch = useAppStore((s) => s.setShowSearch);
   const toggleShowSearch = useAppStore((s) => s.toggleShowSearch);
 
   useEffect(() => {
-    hydrateFromLegacyIfNeeded();
-  }, [hydrateFromLegacyIfNeeded]);
-
-  useEffect(() => {
-    if (Platform.OS === "web") {
+    if (!isFocused || !showSearch) {
       return;
     }
-    const lock = allowRotation
-      ? ScreenOrientation.OrientationLock.DEFAULT
-      : ScreenOrientation.OrientationLock.PORTRAIT;
-    ScreenOrientation.lockAsync(lock).catch(() => {});
-  }, [allowRotation]);
-
-  useEffect(() => {
-    if (Platform.OS === "android") {
-      const barStyle = theme === "dark" ? "light" : "dark";
-      try {
-        NavigationBar.setStyle(barStyle);
-      } catch {
-        // Ignore on unsupported devices
-      }
-    }
-  }, [theme]);
-
-  if (!isHydrated) {
-    return (
-      <View
-        style={[
-          styles.loadingRoot,
-          { backgroundColor: colors.bible.background[theme] },
-        ]}
-      />
-    );
-  }
+    const sub = BackHandler.addEventListener("hardwareBackPress", () => {
+      setShowSearch(false);
+      return true;
+    });
+    return () => sub.remove();
+  }, [isFocused, showSearch, setShowSearch]);
 
   const activeTab = tabs[currentTab];
   const isLightStatusContent = theme === "dark";
@@ -112,18 +92,21 @@ function MainScreen() {
             setCurrentTab(index);
             setShowSearch(false);
           }}
-          onOpenActiveTabModal={() => setTabModalOpen(true)}
+          onOpenActiveTabModal={() => navigation.navigate("TabModal")}
           onAddTab={addTab}
         />
       </View>
 
-      {/* Search Drawer */}
+      {/* Live Search Drawer */}
       {showSearch ? (
         <SearchPanel
           theme={theme}
           color={color}
-          onSelectReference={(ref) => {
-            jumpCurrentTabToReference(ref);
+          onSelectReference={(ref, options) => {
+            jumpCurrentTabToReference(ref, options?.highlight ?? true);
+            if (options?.closeSearch) {
+              setShowSearch(false);
+            }
           }}
           onClose={toggleShowSearch}
         />
@@ -144,28 +127,85 @@ function MainScreen() {
           onSyncScrolledReference={syncScrolledReference}
         />
       ) : null}
-
-      {/* Hoisted Single Tab/Browser/Settings Modal */}
-      <TabModal
-        visible={tabModalOpen}
-        tab={activeTab}
-        tabIndex={currentTab}
-        theme={theme}
-        color={color}
-        textSize={textSize}
-        allowRotation={allowRotation}
-        insets={insets}
-        onClose={() => setTabModalOpen(false)}
-        onOpenSearch={() => setShowSearch(true)}
-        onRenameTab={renameTab}
-        onSelectReference={jumpTabToReference}
-        onRemoveTab={removeTab}
-        onSetTheme={setTheme}
-        onSetColor={setColor}
-        onSetTextSize={setTextSize}
-        onToggleRotation={toggleRotation}
-      />
     </View>
+  );
+}
+
+function RootNavigator() {
+  const isHydrated = useAppStore((s) => s.isHydrated);
+  const hydrateFromLegacyIfNeeded = useAppStore(
+    (s) => s.hydrateFromLegacyIfNeeded
+  );
+  const theme = useAppStore((s) => s.theme);
+  const allowRotation = useAppStore((s) => s.allowRotation);
+
+  useEffect(() => {
+    hydrateFromLegacyIfNeeded();
+  }, [hydrateFromLegacyIfNeeded]);
+
+  useEffect(() => {
+    if (Platform.OS === "web") {
+      return;
+    }
+    const lock = allowRotation
+      ? ScreenOrientation.OrientationLock.DEFAULT
+      : ScreenOrientation.OrientationLock.PORTRAIT;
+    ScreenOrientation.lockAsync(lock).catch(() => {});
+  }, [allowRotation]);
+
+  useEffect(() => {
+    if (Platform.OS === "android") {
+      const barStyle = theme === "dark" ? "light" : "dark";
+      try {
+        NavigationBar.setStyle(barStyle);
+      } catch {
+        // Ignore on unsupported devices
+      }
+    }
+  }, [theme]);
+
+  const bgColor = colors.bible.background[theme];
+  const baseNavTheme = theme === "dark" ? DarkTheme : DefaultTheme;
+  const navigationTheme = useMemo(
+    () => ({
+      ...baseNavTheme,
+      colors: {
+        ...baseNavTheme.colors,
+        background: bgColor,
+        card: bgColor,
+        text: colors.bible.text[theme],
+      },
+    }),
+    [baseNavTheme, bgColor, theme]
+  );
+
+  if (!isHydrated) {
+    return (
+      <View
+        style={[
+          styles.loadingRoot,
+          { backgroundColor: bgColor },
+        ]}
+      />
+    );
+  }
+
+  return (
+    <NavigationContainer theme={navigationTheme}>
+      <Stack.Navigator
+        initialRouteName="Home"
+        screenOptions={{
+          headerShown: false,
+          animation: "slide_from_bottom",
+          contentStyle: { backgroundColor: bgColor },
+        }}
+      >
+        <Stack.Screen name="Home" component={HomeScreen} />
+        <Stack.Screen name="TabModal" component={TabModal} />
+        <Stack.Screen name="Settings" component={SettingsModal} />
+        <Stack.Screen name="Version" component={VersionModal} />
+      </Stack.Navigator>
+    </NavigationContainer>
   );
 }
 
@@ -176,7 +216,7 @@ export default function App() {
         databaseName="bible_v1.db"
         assetSource={{ assetId: require("./assets/bible.db") }}
       >
-        <MainScreen />
+        <RootNavigator />
       </SQLiteProvider>
     </SafeAreaProvider>
   );

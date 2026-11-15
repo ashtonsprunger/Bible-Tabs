@@ -43,3 +43,10 @@ export interface VerseRow {
   verse: number;
   text: string;
 }
+
+export type RootStackParamList = {
+  Home: undefined;
+  TabModal: undefined;
+  Settings: undefined;
+  Version: undefined;
+};

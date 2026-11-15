@@ -1,14 +1,18 @@
 import { FlashList, type FlashListRef } from "@shopify/flash-list";
 import { useSQLiteContext } from "expo-sqlite";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
+  Keyboard,
   Pressable,
   StyleSheet,
   Text,
   TextInput,
   View,
 } from "react-native";
-import { BOOKS } from "../constants/books";
+import {
+  formatVerseCitation,
+  parseHumanReference,
+} from "../constants/books";
 import { colors } from "../constants/colors";
 import { searchVersesAsync } from "../db/queries";
 import type {
@@ -22,7 +26,10 @@ import MyButton from "./MyButton";
 interface SearchPanelProps {
   theme: ThemeName;
   color: AccentColorName;
-  onSelectReference: (ref: BibleReference) => void;
+  onSelectReference: (
+    ref: BibleReference,
+    options?: { highlight?: boolean; closeSearch?: boolean }
+  ) => void;
   onClose: () => void;
 }
 
@@ -67,11 +74,11 @@ export default function SearchPanel({
   const db = useSQLiteContext();
   const searchInputRef = useRef<TextInput>(null);
   const listRef = useRef<FlashListRef<VerseRow>>(null);
+  const requestSeqRef = useRef(0);
 
   const [searchText, setSearchText] = useState("");
-  const [currentSearchText, setCurrentSearchText] = useState("");
+  const [matchedQuery, setMatchedQuery] = useState("");
   const [searchData, setSearchData] = useState<VerseRow[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -80,124 +87,195 @@ export default function SearchPanel({
     return () => clearTimeout(timer);
   }, []);
 
-  const runSearch = async () => {
-    if (searchData.length > 0) {
-      listRef.current?.scrollToOffset({ offset: 0, animated: true });
+  const quickJump = useMemo(
+    () => parseHumanReference(searchText),
+    [searchText]
+  );
+
+  useEffect(() => {
+    const trimmed = searchText.trim();
+    if (trimmed.length < 2) {
+      requestSeqRef.current += 1;
+      setSearchData([]);
+      setMatchedQuery("");
+      return;
     }
-    setIsLoading(true);
-    const query = searchText;
-    setCurrentSearchText(query);
-    try {
-      const results = await searchVersesAsync(db, query);
-      setSearchData(results);
-    } finally {
-      setIsLoading(false);
+
+    const seq = ++requestSeqRef.current;
+    const timer = setTimeout(async () => {
+      try {
+        const results = await searchVersesAsync(db, trimmed);
+        if (requestSeqRef.current === seq) {
+          setMatchedQuery(trimmed);
+          setSearchData(results);
+          if (results.length > 0) {
+            listRef.current?.scrollToOffset({ offset: 0, animated: false });
+          }
+        }
+      } catch {
+        // Ignore transient query errors
+      }
+    }, 70);
+
+    return () => clearTimeout(timer);
+  }, [db, searchText]);
+
+  const handleSubmit = () => {
+    if (quickJump?.hasExplicitNumber) {
+      Keyboard.dismiss();
+      onSelectReference(quickJump.ref, {
+        highlight: quickJump.hasExplicitVerse,
+        closeSearch: true,
+      });
+      return;
     }
+    Keyboard.dismiss();
   };
 
   const textColor = colors.bible.text[theme];
   const accentBorder = colors.bible.color[theme][color][0];
   const accentText = colors.bible.color[theme][color][1];
   const inactiveBg = colors.tab.tab.inactive[theme];
+  const trimmedInput = searchText.trim();
 
   return (
-    <>
-      <View
-        style={[
-          styles.container,
-          {
-            backgroundColor: colors.bible.background[theme],
-            borderBottomColor: accentBorder,
-          },
-        ]}
-      >
-        <View style={styles.inputRow}>
-          <View style={styles.inputWrapper}>
-            <TextInput
-              ref={searchInputRef}
-              onSubmitEditing={runSearch}
-              returnKeyType="search"
-              placeholder="Search..."
-              placeholderTextColor={textColor}
-              style={[
-                styles.input,
-                {
-                  backgroundColor: inactiveBg,
-                  color: textColor,
-                },
-              ]}
-              value={searchText}
-              onChangeText={setSearchText}
-            />
-          </View>
-          <View style={styles.searchButtonWrapper}>
-            <MyButton
-              color={accentText}
-              textColor={textColor}
-              backgroundColor={inactiveBg}
-              onPress={runSearch}
-              title="Search"
-            />
-          </View>
-        </View>
+    <View
+      style={[
+        styles.container,
+        {
+          backgroundColor: colors.bible.background[theme],
+          borderBottomColor: accentBorder,
+        },
+      ]}
+    >
+      {/* Live Search Input + Clear Button */}
+      <View style={[styles.inputBox, { backgroundColor: inactiveBg }]}>
+        <TextInput
+          ref={searchInputRef}
+          onSubmitEditing={handleSubmit}
+          returnKeyType="go"
+          placeholder="Search words or reference (e.g. Psalm 23)..."
+          placeholderTextColor="rgb(145,145,145)"
+          style={[styles.input, { color: textColor }]}
+          value={searchText}
+          onChangeText={setSearchText}
+          autoCapitalize="none"
+          autoCorrect={false}
+        />
+        {searchText.length > 0 ? (
+          <Pressable
+            onPress={() => {
+              setSearchText("");
+              searchInputRef.current?.focus();
+            }}
+            hitSlop={10}
+            style={styles.clearButton}
+            accessibilityRole="button"
+            accessibilityLabel="Clear search"
+          >
+            <Text style={[styles.clearText, { color: textColor }]}>×</Text>
+          </Pressable>
+        ) : null}
+      </View>
 
-        {searchData.length > 0 ? (
+      {/* Direct Reference Quick Jump */}
+      {quickJump ? (
+        <Pressable
+          style={[
+            styles.quickJumpCard,
+            {
+              backgroundColor: inactiveBg,
+              borderColor: accentBorder,
+            },
+          ]}
+          onPress={() => {
+            Keyboard.dismiss();
+            onSelectReference(quickJump.ref, {
+              highlight: quickJump.hasExplicitVerse,
+              closeSearch: true,
+            });
+          }}
+        >
+          <Text style={[styles.quickJumpText, { color: textColor }]}>
+            Jump to{" "}
+            <Text style={[styles.quickJumpHighlight, { color: accentText }]}>
+              {quickJump.label}
+            </Text>
+          </Text>
+          <Text style={[styles.quickJumpArrow, { color: accentText }]}>→</Text>
+        </Pressable>
+      ) : null}
+
+      {/* Keyword Results */}
+      {searchData.length > 0 ? (
+        <>
+          <Text style={styles.resultCountText}>
+            {searchData.length === 1
+              ? "1 matching verse"
+              : `${searchData.length.toLocaleString()} matching verses`}
+          </Text>
           <View style={styles.resultsContainer}>
             <FlashList
               ref={listRef}
               data={searchData}
+              keyboardShouldPersistTaps="handled"
               keyExtractor={(item) =>
                 `${item.book},${item.chapter},${item.verse}`
               }
-              extraData={{ currentSearchText, theme, color }}
+              extraData={{ matchedQuery, theme, color }}
               renderItem={({ item }) => (
                 <Pressable
                   style={styles.resultRow}
-                  onPress={() =>
-                    onSelectReference({
-                      book: item.book,
-                      chapter: item.chapter,
-                      verse: item.verse,
-                    })
-                  }
+                  onPress={() => {
+                    Keyboard.dismiss();
+                    onSelectReference(
+                      {
+                        book: item.book,
+                        chapter: item.chapter,
+                        verse: item.verse,
+                      },
+                      { highlight: true, closeSearch: false }
+                    );
+                  }}
                 >
-                  <Text style={{ color: textColor }}>
-                    <Text style={{ color: accentText }}>
-                      {`${BOOKS[item.book].book} ${item.chapter}:${item.verse} `}
+                  <Text style={[styles.resultVerseText, { color: textColor }]}>
+                    <Text style={[styles.resultCitation, { color: accentText }]}>
+                      {`${formatVerseCitation(
+                        item.book,
+                        item.chapter,
+                        item.verse
+                      )} `}
                     </Text>
                     <Text>
-                      {renderTextWithBoldMatches(item.text, currentSearchText)}
+                      {renderTextWithBoldMatches(item.text, matchedQuery)}
                     </Text>
                   </Text>
                 </Pressable>
               )}
             />
           </View>
-        ) : null}
-
-        {searchData.length === 0 && currentSearchText !== "" && !isLoading ? (
-          <Text style={[styles.noResults, { color: textColor }]}>
-            {`No results for "${currentSearchText}".`}
-          </Text>
-        ) : null}
-
-        <View style={styles.closeWrapper}>
-          <MyButton
-            color={accentText}
-            textColor={textColor}
-            backgroundColor={inactiveBg}
-            onPress={onClose}
-            title="Close"
-          />
-        </View>
-      </View>
-
-      {isLoading ? (
-        <View style={styles.loadingOverlay}>
-          <Text>loading...</Text>
-        </View>
+        </>
       ) : null}
-    </>
+
+      {searchData.length === 0 &&
+      matchedQuery !== "" &&
+      trimmedInput.length >= 2 &&
+      !quickJump ? (
+        <Text style={[styles.noResults, { color: textColor }]}>
+          {`No verses matching "${matchedQuery}".`}
+        </Text>
+      ) : null}
+
+      <View style={styles.closeWrapper}>
+        <MyButton
+          color={accentText}
+          textColor={textColor}
+          backgroundColor={inactiveBg}
+          onPress={onClose}
+          title="Close"
+        />
+      </View>
+    </View>
   );
 }
 
@@ -207,42 +285,74 @@ const styles = StyleSheet.create({
     borderBottomWidth: 3,
     height: "auto",
   },
-  inputRow: {
+  inputBox: {
     flexDirection: "row",
-  },
-  inputWrapper: {
-    flex: 3,
-    marginRight: 12,
+    alignItems: "center",
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    marginBottom: 8,
   },
   input: {
-    fontSize: 25,
-    paddingHorizontal: 5,
-    paddingVertical: 3,
-    borderRadius: 7,
-    marginBottom: 6,
-  },
-  searchButtonWrapper: {
     flex: 1,
+    fontSize: 19,
+    paddingVertical: 8,
+  },
+  clearButton: {
+    paddingLeft: 8,
+    paddingVertical: 4,
+  },
+  clearText: {
+    fontSize: 24,
+    lineHeight: 24,
+    opacity: 0.65,
+  },
+  quickJumpCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    borderWidth: 1.5,
+    marginBottom: 8,
+  },
+  quickJumpText: {
+    fontSize: 17,
+    fontWeight: "500",
+  },
+  quickJumpHighlight: {
+    fontWeight: "700",
+  },
+  quickJumpArrow: {
+    fontSize: 20,
+    fontWeight: "700",
+  },
+  resultCountText: {
+    fontSize: 12,
+    color: "rgb(145,145,145)",
+    marginBottom: 4,
   },
   resultsContainer: {
-    height: 300,
+    height: 270,
   },
   resultRow: {
-    paddingVertical: 6,
+    paddingVertical: 7,
+  },
+  resultCitation: {
+    fontWeight: "600",
+  },
+  resultVerseText: {
+    fontSize: 16,
+    lineHeight: 22,
   },
   boldMatch: {
     fontWeight: "900",
   },
   noResults: {
-    paddingVertical: 12,
+    paddingVertical: 10,
+    fontSize: 16,
   },
   closeWrapper: {
     marginTop: 6,
-  },
-  loadingOverlay: {
-    position: "absolute",
-    height: "100%",
-    width: "100%",
-    backgroundColor: "rgba(150,150,150,0.5)",
   },
 });
