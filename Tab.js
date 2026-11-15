@@ -52,8 +52,8 @@ export default function Tab(props) {
     tabs[props.index].reference = newReference.join(",");
     AsyncStorage.setItem("tabs", JSON.stringify(tabs)).then(() => {
       props.updateLocalTabs();
+      props.setCurrentTab(-1);
       setTimeout(() => {
-        props.setCurrentTab(-1);
         props.setCurrentTab(props.currentTab);
       }, 100);
     });

@@ -146,7 +146,7 @@ export default function Bible(props) {
     // window.setTimeout(() => {
     // }, 5000);
   };
-  useEffect(() => {}, []);
+  useEffect(() => { }, []);
 
   const itemChange = (items) => {
     if (items.viewableItems.length != 0) {
@@ -164,7 +164,7 @@ export default function Bible(props) {
   const viewabilityConfigCallbackPairs = useRef([{ onViewableItemsChanged }]);
 
   const refresh = () => {
-    console.log("refresh");
+    // console.log("refresh");
     props.toggleShowSearch();
   };
 
@@ -244,7 +244,7 @@ export default function Bible(props) {
   };
 
   const nextChapter = () => {
-    const currentVerse = chapterData[0];
+    const currentVerse = chapterData[chapterData.length - 1];
 
     let newBook;
     let newChapter;
@@ -252,7 +252,7 @@ export default function Bible(props) {
     if (
       currentVerse[1] ==
       getBookVerses(currentVerse[0], data)[
-        getBookVerses(currentVerse[0], data).length - 1
+      getBookVerses(currentVerse[0], data).length - 1
       ][1]
     ) {
       newBook = Number(currentVerse[0]) + 1;
@@ -262,9 +262,13 @@ export default function Bible(props) {
       newChapter = Number(currentVerse[1]) + 1;
     }
 
-    ref.current.scrollToIndex({ index: 0, animated: true });
+    // ref.current.scrollToIndex({ index: 0, animated: true });
 
-    setChapterData(getChapterVerses(newBook, newChapter, data));
+    // setChapterData(getChapterVerses(newBook, newChapter, data));
+    setChapterData(previous => {
+      console.log(previous);
+      return [...previous, ...getChapterVerses(newBook, newChapter, data)];
+    })
     // setTimeout(() => {
     //   props.updateLocalTabs();
     // }, 200);
@@ -276,7 +280,7 @@ export default function Bible(props) {
   const renderItem = (item) => {
     return (
       <Text key={item.index}>
-        {item.item[2] == 1 && !(item.item[0] == 0 && item.item[1] == 1) ? (
+        {item.item[2] == 1 && !(item.item[0] == 0 && item.item[1] == 1) && item.index == 0 ? (
           <>
             <Text
               style={{
@@ -291,10 +295,10 @@ export default function Bible(props) {
                 title={
                   item.item[1] == 1
                     ? books[props.book - 1] +
-                      " " +
-                      getBookVerses(item.item[0] - 1, data)[
-                        getBookVerses(item.item[0] - 1, data).length - 1
-                      ][1]
+                    " " +
+                    getBookVerses(item.item[0] - 1, data)[
+                    getBookVerses(item.item[0] - 1, data).length - 1
+                    ][1]
                     : books[item.item[0]] + " " + String(item.item[1] - 1)
                 }
               />
@@ -349,7 +353,7 @@ export default function Bible(props) {
         >
           {item.item[3]}
         </Text>
-        {item.item[2] == chapterData[chapterData.length - 1][2] ? (
+        {item.item[2] == chapterData[chapterData.length - 1][2] && item.index == chapterData.length - 1 ? (
           <>
             {!(item.item[0] == 65 && item.item[1] == 22) ? (
               <>
@@ -361,9 +365,9 @@ export default function Bible(props) {
                   onPress={nextChapter}
                   title={
                     item.item[1] ==
-                    getBookVerses(item.item[0], data)[
+                      getBookVerses(item.item[0], data)[
                       getBookVerses(item.item[0], data).length - 1
-                    ][1]
+                      ][1]
                       ? books[Number(item.item[0]) + 1] + " " + 1
                       : books[item.item[0]] + " " + (Number(item.item[1]) + 1)
                   }

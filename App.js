@@ -487,7 +487,7 @@ const styles = StyleSheet.create({
     // alignItems: "center",
     // padding: 12,
     // paddingBottom: 50,
-    // paddingTop: StatusBar.currentHeight,
+    paddingTop: StatusBar.currentHeight,
     flexDirection: "column",
     // paddingTop: 50,
     // backgroundColor: "black",
