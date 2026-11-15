@@ -1,14 +1,24 @@
 node_modules/
 .expo/
 dist/
+web-build/
+expo-env.d.ts
+
+# Native folders generated via Continuous Native Generation (CNG)
+/android
+/ios
+
+# Credentials & logs
 npm-debug.*
+yarn-debug.*
+yarn-error.*
 *.jks
 *.p8
 *.p12
 *.key
 *.mobileprovision
 *.orig.*
-web-build/
 
-# macOS
+# OS
 .DS_Store
+Thumbs.db

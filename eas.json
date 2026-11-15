@@ -1,45 +1,25 @@
 {
   "cli": {
-    "version": ">= 3.6.0"
+    "version": ">= 12.0.0",
+    "appVersionSource": "local"
   },
   "build": {
     "development": {
       "developmentClient": true,
       "distribution": "internal",
-      "ios": {
-        "resourceClass": "m1-medium"
-      },
       "android": {
-        "buildType": "apk",
-        "env": {
-          "EXPO_TARGET_SDK_VERSION": "34"
-        },
-        "image" : "latest"
+        "buildType": "apk"
       }
     },
     "preview": {
       "distribution": "internal",
-      "ios": {
-        "resourceClass": "m1-medium"
-      },
       "android": {
-        "buildType": "apk",
-        "env": {
-          "EXPO_TARGET_SDK_VERSION": "34"
-        },
-        "image" : "latest"
+        "buildType": "apk"
       }
     },
     "production": {
-      "ios": {
-        "resourceClass": "m1-medium"
-      },
       "android": {
-        "buildType": "app-bundle",
-        "env": {
-          "EXPO_TARGET_SDK_VERSION": "34"
-        },
-        "image" : "latest"
+        "buildType": "app-bundle"
       }
     }
   },
