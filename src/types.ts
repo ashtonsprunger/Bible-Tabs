@@ -37,6 +37,7 @@ export interface BookInfo {
 }
 
 export interface VerseRow {
+  id: number;
   book: number;
   chapter: number;
   verse: number;

@@ -1,10 +1,6 @@
-import {
-  FlashList,
-  type FlashListRef,
-  type ViewToken,
-} from "@shopify/flash-list";
+import { FlashList, type ViewToken } from "@shopify/flash-list";
 import { useSQLiteContext } from "expo-sqlite";
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useRef, useState } from "react";
 import {
   Linking,
   Pressable,
@@ -13,14 +9,13 @@ import {
   Vibration,
   View,
 } from "react-native";
-import {
-  BOOKS,
-  getNextChapter,
-  getPreviousChapter,
-  parseReference,
-} from "../constants/books";
+import { BOOKS, parseReference } from "../constants/books";
 import { colors } from "../constants/colors";
-import { getChapterVersesSync } from "../db/queries";
+import {
+  TOTAL_BIBLE_VERSES,
+  getVerseIdSync,
+  getVersesByIdRangeSync,
+} from "../db/queries";
 import type { RuntimeTab } from "../store/useAppStore";
 import type {
   AccentColorName,
@@ -28,7 +23,8 @@ import type {
   ThemeName,
   VerseRow,
 } from "../types";
-import MyButton from "./MyButton";
+
+const WINDOW_BATCH_SIZE = 80;
 
 interface BibleReaderProps {
   tab: RuntimeTab;
@@ -38,7 +34,11 @@ interface BibleReaderProps {
   textSize: TextSizeOption;
   bottomInset: number;
   onSyncScrolledReference: (tabIndex: number, refString: string) => void;
-  onToggleSearch: () => void;
+}
+
+interface InitialWindowState {
+  verses: VerseRow[];
+  initialIndex: number;
 }
 
 export default function BibleReader({
@@ -49,104 +49,84 @@ export default function BibleReader({
   textSize,
   bottomInset,
   onSyncScrolledReference,
-  onToggleSearch,
 }: BibleReaderProps) {
   const db = useSQLiteContext();
-  const listRef = useRef<FlashListRef<VerseRow>>(null);
-  const isJumpingRef = useRef(true);
+  const hasLoadedRef = useRef(false);
+  const isPrependingRef = useRef(false);
+  const isAppendingRef = useRef(false);
 
-  // Keep latest callbacks/indices in refs for stable viewability listener
   const tabIndexRef = useRef(tabIndex);
   tabIndexRef.current = tabIndex;
   const syncRefCallback = useRef(onSyncScrolledReference);
   syncRefCallback.current = onSyncScrolledReference;
 
-  const initialRef = parseReference(tab.reference);
-  const [chapterData, setChapterData] = useState<VerseRow[]>(() =>
-    getChapterVersesSync(db, initialRef.book, initialRef.chapter)
-  );
-  const initialIndex =
-    initialRef.verse > 1 && chapterData.length > 0
-      ? Math.min(chapterData.length - 1, initialRef.verse - 1)
-      : undefined;
-  const [pendingScrollVerse, setPendingScrollVerse] = useState<number | null>(
-    initialRef.verse
-  );
-
-  // Reload chapter and jump to verse whenever the active tab switches or an explicit navigation happens
-  const lastNavKeyRef = useRef(`${tab.id}:${tab.navVersion}`);
-  useEffect(() => {
-    const navKey = `${tab.id}:${tab.navVersion}`;
-    if (lastNavKeyRef.current === navKey) {
-      return;
-    }
-    lastNavKeyRef.current = navKey;
-
-    const target = parseReference(tab.reference);
-    const verses = getChapterVersesSync(db, target.book, target.chapter);
-    isJumpingRef.current = true;
-    setChapterData(verses);
-    setPendingScrollVerse(target.verse);
-  }, [db, tab.id, tab.navVersion, tab.reference]);
-
-  // Perform the scroll once chapterData has rendered
-  useEffect(() => {
-    if (pendingScrollVerse === null || chapterData.length === 0) {
-      return;
-    }
-
-    const targetIndex = Math.max(
-      0,
-      Math.min(chapterData.length - 1, pendingScrollVerse - 1)
-    );
-
-    const timer = setTimeout(() => {
-      if (targetIndex === 0) {
-        listRef.current?.scrollToOffset({ offset: 0, animated: false });
-      } else {
-        listRef.current?.scrollToIndex({ index: targetIndex, animated: false });
-      }
-      setPendingScrollVerse(null);
-      setTimeout(() => {
-        isJumpingRef.current = false;
-      }, 80);
-    }, 20);
-
-    return () => clearTimeout(timer);
-  }, [pendingScrollVerse, chapterData]);
-
-  const handlePreviousChapter = useCallback(() => {
-    const firstVerse = chapterData[0];
-    if (!firstVerse) return;
-    const prev = getPreviousChapter(firstVerse.book, firstVerse.chapter);
-    if (!prev) return;
-
-    isJumpingRef.current = true;
-    const verses = getChapterVersesSync(db, prev.book, prev.chapter);
-    setChapterData(verses);
-    syncRefCallback.current(tabIndexRef.current, `${prev.book},${prev.chapter},1`);
-
-    requestAnimationFrame(() => {
-      listRef.current?.scrollToOffset({ offset: 0, animated: true });
-      setTimeout(() => {
-        isJumpingRef.current = false;
-      }, 150);
+  const [{ verses, initialIndex }, setWindowState] =
+    useState<InitialWindowState>(() => {
+      const target = parseReference(tab.reference);
+      const targetId = getVerseIdSync(
+        db,
+        target.book,
+        target.chapter,
+        target.verse
+      );
+      const startId = Math.max(1, targetId - WINDOW_BATCH_SIZE);
+      const endId = Math.min(TOTAL_BIBLE_VERSES, targetId + WINDOW_BATCH_SIZE);
+      const initialVerses = getVersesByIdRangeSync(db, startId, endId);
+      return {
+        verses: initialVerses,
+        initialIndex: Math.max(0, targetId - startId),
+      };
     });
-  }, [chapterData, db]);
 
-  const handleNextChapter = useCallback(() => {
-    const lastVerse = chapterData[chapterData.length - 1];
-    if (!lastVerse) return;
-    const next = getNextChapter(lastVerse.book, lastVerse.chapter);
-    if (!next) return;
+  const handleStartReached = useCallback(() => {
+    if (isPrependingRef.current) {
+      return;
+    }
+    setWindowState((prev) => {
+      const firstId = prev.verses[0]?.id;
+      if (!firstId || firstId <= 1) {
+        return prev;
+      }
+      isPrependingRef.current = true;
+      const newStartId = Math.max(1, firstId - WINDOW_BATCH_SIZE);
+      const olderVerses = getVersesByIdRangeSync(db, newStartId, firstId - 1);
+      isPrependingRef.current = false;
+      if (olderVerses.length === 0) {
+        return prev;
+      }
+      return {
+        ...prev,
+        verses: [...olderVerses, ...prev.verses],
+      };
+    });
+  }, [db]);
 
-    const nextVerses = getChapterVersesSync(db, next.book, next.chapter);
-    setChapterData((prev) => [...prev, ...nextVerses]);
-  }, [chapterData, db]);
+  const handleEndReached = useCallback(() => {
+    if (isAppendingRef.current) {
+      return;
+    }
+    setWindowState((prev) => {
+      const lastId = prev.verses[prev.verses.length - 1]?.id;
+      if (!lastId || lastId >= TOTAL_BIBLE_VERSES) {
+        return prev;
+      }
+      isAppendingRef.current = true;
+      const newEndId = Math.min(TOTAL_BIBLE_VERSES, lastId + WINDOW_BATCH_SIZE);
+      const newerVerses = getVersesByIdRangeSync(db, lastId + 1, newEndId);
+      isAppendingRef.current = false;
+      if (newerVerses.length === 0) {
+        return prev;
+      }
+      return {
+        ...prev,
+        verses: [...prev.verses, ...newerVerses],
+      };
+    });
+  }, [db]);
 
   const onViewableItemsChanged = useCallback(
     ({ viewableItems }: { viewableItems: ViewToken<VerseRow>[] }) => {
-      if (isJumpingRef.current || viewableItems.length === 0) {
+      if (!hasLoadedRef.current || viewableItems.length === 0) {
         return;
       }
       const topItem = viewableItems[0]?.item;
@@ -170,17 +150,8 @@ export default function BibleReader({
   const numericSize = Number(textSize);
   const textColor = colors.bible.text[theme];
   const accentColor = colors.bible.color[theme][color][1];
-  const inactiveTabBg = colors.tab.tab.inactive[theme];
-
-  const firstVerse = chapterData[0];
-  const prevChapterInfo = firstVerse
-    ? getPreviousChapter(firstVerse.book, firstVerse.chapter)
-    : null;
-
-  const lastVerse = chapterData[chapterData.length - 1];
-  const nextChapterInfo = lastVerse
-    ? getNextChapter(lastVerse.book, lastVerse.chapter)
-    : null;
+  const isAtBibleEnd =
+    verses[verses.length - 1]?.id === TOTAL_BIBLE_VERSES;
 
   return (
     <View
@@ -190,52 +161,30 @@ export default function BibleReader({
       ]}
     >
       <FlashList
-        ref={listRef}
-        data={chapterData}
+        data={verses}
         initialScrollIndex={initialIndex}
-        keyExtractor={(item) => `${item.book},${item.chapter},${item.verse}`}
+        keyExtractor={(item) => `${item.id}`}
         getItemType={(item) => (item.verse === 1 ? "chapterStart" : "verse")}
         extraData={{ theme, color, textSize }}
         showsVerticalScrollIndicator={false}
+        onLoad={() => {
+          hasLoadedRef.current = true;
+        }}
+        onStartReached={handleStartReached}
+        onStartReachedThreshold={1.5}
+        onEndReached={handleEndReached}
+        onEndReachedThreshold={1.5}
         viewabilityConfigCallbackPairs={viewabilityConfigCallbackPairs.current}
-        refreshing={false}
-        onRefresh={onToggleSearch}
-        ListHeaderComponent={
-          prevChapterInfo ? (
-            <View style={styles.prevHeaderWrapper}>
-              <MyButton
-                color={accentColor}
-                textColor={textColor}
-                backgroundColor={inactiveTabBg}
-                onPress={handlePreviousChapter}
-                title={`${BOOKS[prevChapterInfo.book].book} ${prevChapterInfo.chapter}`}
-              />
-            </View>
-          ) : null
-        }
         ListFooterComponent={
-          <View
-            style={{
-              paddingTop: 28,
-              paddingBottom: Math.max(48, bottomInset + 32),
-            }}
-          >
-            {nextChapterInfo ? (
-              <MyButton
-                color={accentColor}
-                textColor={textColor}
-                backgroundColor={inactiveTabBg}
-                onPress={handleNextChapter}
-                title={`${BOOKS[nextChapterInfo.book].book} ${nextChapterInfo.chapter}`}
-              />
-            ) : null}
-          </View>
+          isAtBibleEnd ? (
+            <View style={{ height: Math.max(48, bottomInset + 32) }} />
+          ) : null
         }
         renderItem={({ item }) => {
           if (item.verse === 1) {
             const bookName = BOOKS[item.book].book;
             return (
-              <View>
+              <View style={item.id > 1 ? styles.chapterSpacing : undefined}>
                 <Pressable
                   delayLongPress={300}
                   onLongPress={() => {
@@ -310,8 +259,7 @@ const styles = StyleSheet.create({
     paddingLeft: 12,
     paddingRight: 12,
   },
-  prevHeaderWrapper: {
-    paddingTop: 8,
-    paddingBottom: 16,
+  chapterSpacing: {
+    paddingTop: 28,
   },
 });

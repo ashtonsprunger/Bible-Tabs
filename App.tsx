@@ -134,6 +134,7 @@ function MainScreen() {
         <WhyEmpty theme={theme} />
       ) : activeTab ? (
         <BibleReader
+          key={`${activeTab.id}:${activeTab.navVersion}`}
           tab={activeTab}
           tabIndex={currentTab}
           theme={theme}
@@ -141,7 +142,6 @@ function MainScreen() {
           textSize={textSize}
           bottomInset={insets.bottom}
           onSyncScrolledReference={syncScrolledReference}
-          onToggleSearch={toggleShowSearch}
         />
       ) : null}
 
@@ -156,6 +156,7 @@ function MainScreen() {
         allowRotation={allowRotation}
         insets={insets}
         onClose={() => setTabModalOpen(false)}
+        onOpenSearch={() => setShowSearch(true)}
         onRenameTab={renameTab}
         onSelectReference={jumpTabToReference}
         onRemoveTab={removeTab}

@@ -31,6 +31,7 @@ interface TabModalProps {
   allowRotation: boolean;
   insets: EdgeInsets;
   onClose: () => void;
+  onOpenSearch: () => void;
   onRenameTab: (index: number, name: string) => void;
   onSelectReference: (index: number, ref: BibleReference) => void;
   onRemoveTab: (index: number) => void;
@@ -38,6 +39,15 @@ interface TabModalProps {
   onSetColor: (color: AccentColorName) => void;
   onSetTextSize: (size: TextSizeOption) => void;
   onToggleRotation: () => void;
+}
+
+function SearchIcon({ color }: { color: string }) {
+  return (
+    <View style={styles.searchIconBox}>
+      <View style={[styles.searchLens, { borderColor: color }]} />
+      <View style={[styles.searchHandle, { backgroundColor: color }]} />
+    </View>
+  );
 }
 
 export default function TabModal({
@@ -50,6 +60,7 @@ export default function TabModal({
   allowRotation,
   insets,
   onClose,
+  onOpenSearch,
   onRenameTab,
   onSelectReference,
   onRemoveTab,
@@ -75,11 +86,21 @@ export default function TabModal({
   const placeholder = `${BOOKS[parsedRef.book].book} ${parsedRef.chapter}`;
   const textColor = colors.bible.text[theme];
 
-  const handleClose = () => {
+  const saveTrimmedName = () => {
     const trimmed = draftName.trim();
     setDraftName(trimmed);
     onRenameTab(tabIndex, trimmed);
+  };
+
+  const handleClose = () => {
+    saveTrimmedName();
     onClose();
+  };
+
+  const handleOpenSearch = () => {
+    saveTrimmedName();
+    onClose();
+    onOpenSearch();
   };
 
   return (
@@ -99,7 +120,7 @@ export default function TabModal({
             },
           ]}
         >
-          {/* Header Row: Editable Tab Title + Gear Icon */}
+          {/* Header Row: Editable Tab Title + Search Icon + Gear Icon */}
           <View style={styles.headerRow}>
             <TextInput
               style={[styles.titleInput, { color: textColor }]}
@@ -112,12 +133,24 @@ export default function TabModal({
               placeholderTextColor="rgb(150,150,150)"
               selectTextOnFocus
             />
-            <Pressable
-              onPress={() => setSettingsOpen(true)}
-              hitSlop={8}
-            >
-              <Text style={[styles.gearIcon, { color: textColor }]}>⚙</Text>
-            </Pressable>
+            <View style={styles.headerActions}>
+              <Pressable
+                onPress={handleOpenSearch}
+                hitSlop={8}
+                accessibilityRole="button"
+                accessibilityLabel="Search Bible"
+              >
+                <SearchIcon color={textColor} />
+              </Pressable>
+              <Pressable
+                onPress={() => setSettingsOpen(true)}
+                hitSlop={8}
+                accessibilityRole="button"
+                accessibilityLabel="Settings"
+              >
+                <Text style={[styles.gearIcon, { color: textColor }]}>⚙</Text>
+              </Pressable>
+            </View>
           </View>
 
           {/* Expandable Book & Chapter Picker */}
@@ -126,9 +159,7 @@ export default function TabModal({
             theme={theme}
             color={color}
             onSelectChapter={(book, chapter) => {
-              const trimmed = draftName.trim();
-              setDraftName(trimmed);
-              onRenameTab(tabIndex, trimmed);
+              saveTrimmedName();
               onSelectReference(tabIndex, { book, chapter, verse: 1 });
               onClose();
             }}
@@ -188,9 +219,38 @@ const styles = StyleSheet.create({
     marginBottom: 15,
   },
   titleInput: {
+    flex: 1,
     fontSize: 35,
-    width: "85%",
+    marginRight: 12,
     paddingVertical: 0,
+  },
+  headerActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 14,
+  },
+  searchIconBox: {
+    width: 30,
+    height: 30,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  searchLens: {
+    width: 17,
+    height: 17,
+    borderRadius: 8.5,
+    borderWidth: 2.5,
+    marginTop: -4,
+    marginLeft: -4,
+  },
+  searchHandle: {
+    position: "absolute",
+    width: 9,
+    height: 2.5,
+    borderRadius: 1.25,
+    left: 17.5,
+    top: 20.75,
+    transform: [{ rotate: "45deg" }],
   },
   gearIcon: {
     fontSize: 30,
