@@ -90,12 +90,34 @@ function parseStoredTabs(raw: string | null): RuntimeTab[] {
   }
 }
 
+const latestReferenceByTabId = new Map<string, string>();
+
+function getBookChapterKey(refString: string): string {
+  const firstComma = refString.indexOf(",");
+  if (firstComma === -1) return refString;
+  const secondComma = refString.indexOf(",", firstComma + 1);
+  return secondComma === -1 ? refString : refString.slice(0, secondComma);
+}
+
+function withLatestRefs(tabs: RuntimeTab[]): RuntimeTab[] {
+  let changed = false;
+  const updated = tabs.map((t) => {
+    const latest = latestReferenceByTabId.get(t.id);
+    if (latest && latest !== t.reference) {
+      changed = true;
+      return { ...t, reference: latest };
+    }
+    return t;
+  });
+  return changed ? updated : tabs;
+}
+
 function serializeTabs(tabs: RuntimeTab[]): string {
   // Store exact legacy shape ({ reference, name }) plus id for backwards compatibility
   return JSON.stringify(
     tabs.map((t) => ({
       id: t.id,
-      reference: t.reference,
+      reference: latestReferenceByTabId.get(t.id) ?? t.reference,
       name: t.name,
     }))
   );
@@ -275,22 +297,23 @@ export const useAppStore = create<AppState>((set, get) => ({
   },
 
   setCurrentTab: (index) => {
-    const { tabs } = get();
-    flushTabsToStorage(tabs);
-    const clamped = clampTabIndex(String(index), tabs.length);
+    const syncedTabs = withLatestRefs(get().tabs);
+    flushTabsToStorage(syncedTabs);
+    const clamped = clampTabIndex(String(index), syncedTabs.length);
     kvSetSync("lastTab", String(clamped));
-    set({ currentTab: clamped });
+    set({ tabs: syncedTabs, currentTab: clamped });
   },
 
   addTab: () => {
-    const { tabs } = get();
+    const syncedTabs = withLatestRefs(get().tabs);
     const newTab: RuntimeTab = {
       id: makeTabId(),
       name: "",
       reference: "0,1,1",
       navVersion: 0,
     };
-    const nextTabs = [...tabs, newTab];
+    latestReferenceByTabId.set(newTab.id, "0,1,1");
+    const nextTabs = [...syncedTabs, newTab];
     const nextIndex = nextTabs.length - 1;
     flushTabsToStorage(nextTabs);
     kvSetSync("lastTab", String(nextIndex));
@@ -298,8 +321,12 @@ export const useAppStore = create<AppState>((set, get) => ({
   },
 
   removeTab: (index) => {
-    const { tabs } = get();
-    const nextTabs = tabs.filter((_, i) => i !== index);
+    const syncedTabs = withLatestRefs(get().tabs);
+    const removed = syncedTabs[index];
+    if (removed) {
+      latestReferenceByTabId.delete(removed.id);
+    }
+    const nextTabs = syncedTabs.filter((_, i) => i !== index);
     const nextCurrent =
       nextTabs.length === 0 ? 0 : Math.min(index, nextTabs.length - 1);
     flushTabsToStorage(nextTabs);
@@ -319,14 +346,17 @@ export const useAppStore = create<AppState>((set, get) => ({
   },
 
   flushTabs: () => {
-    flushTabsToStorage(get().tabs);
+    const syncedTabs = withLatestRefs(get().tabs);
+    flushTabsToStorage(syncedTabs);
   },
 
   jumpTabToReference: (index, ref, highlight = false) => {
-    const { tabs } = get();
-    if (!tabs[index]) return;
+    const syncedTabs = withLatestRefs(get().tabs);
+    const targetTab = syncedTabs[index];
+    if (!targetTab) return;
     const formatted = formatReference(ref);
-    const nextTabs = tabs.map((t, i) =>
+    latestReferenceByTabId.set(targetTab.id, formatted);
+    const nextTabs = syncedTabs.map((t, i) =>
       i === index
         ? {
             ...t,
@@ -348,14 +378,23 @@ export const useAppStore = create<AppState>((set, get) => ({
   syncScrolledReference: (index, refString) => {
     const { tabs } = get();
     const existing = tabs[index];
-    if (!existing || existing.reference === refString) {
+    if (!existing) {
       return;
     }
-    const nextTabs = tabs.map((t, i) =>
-      i === index ? { ...t, reference: refString } : t
-    );
-    set({ tabs: nextTabs });
+    const prevLatest = latestReferenceByTabId.get(existing.id) ?? existing.reference;
+    if (prevLatest === refString && existing.reference === refString) {
+      return;
+    }
+    latestReferenceByTabId.set(existing.id, refString);
     scheduleTabsSave(() => get().tabs);
+
+    // Only trigger a React state update when book or chapter crosses a boundary
+    if (getBookChapterKey(existing.reference) !== getBookChapterKey(refString)) {
+      const nextTabs = tabs.map((t, i) =>
+        i === index ? { ...t, reference: refString } : t
+      );
+      set({ tabs: nextTabs });
+    }
   },
 
   setTheme: (theme) => {

@@ -1,4 +1,8 @@
-import { FlashList, type ViewToken } from "@shopify/flash-list";
+import {
+  FlashList,
+  type FlashListRef,
+  type ViewToken,
+} from "@shopify/flash-list";
 import * as Clipboard from "expo-clipboard";
 import * as Haptics from "expo-haptics";
 import { useSQLiteContext } from "expo-sqlite";
@@ -40,6 +44,7 @@ const WINDOW_BATCH_SIZE = 80;
 interface BibleReaderProps {
   tab: RuntimeTab;
   tabIndex: number;
+  isActive: boolean;
   theme: ThemeName;
   color: AccentColorName;
   textSize: TextSizeOption;
@@ -49,7 +54,6 @@ interface BibleReaderProps {
 
 interface InitialWindowState {
   verses: VerseRow[];
-  initialIndex: number;
   initialTargetId: number;
 }
 
@@ -65,6 +69,7 @@ function triggerLightHaptic() {
 export default function BibleReader({
   tab,
   tabIndex,
+  isActive,
   theme,
   color,
   textSize,
@@ -72,16 +77,21 @@ export default function BibleReader({
   onSyncScrolledReference,
 }: BibleReaderProps) {
   const db = useSQLiteContext();
+  const listRef = useRef<FlashListRef<VerseRow>>(null);
   const hasLoadedRef = useRef(false);
   const isPrependingRef = useRef(false);
   const isAppendingRef = useRef(false);
 
+  const isActiveRef = useRef(isActive);
+  isActiveRef.current = isActive;
   const tabIndexRef = useRef(tabIndex);
   tabIndexRef.current = tabIndex;
   const syncRefCallback = useRef(onSyncScrolledReference);
   syncRefCallback.current = onSyncScrolledReference;
 
-  const [{ verses, initialIndex, initialTargetId }, setWindowState] =
+  // Start at targetId (index 0) to avoid FlashList v2's initialScrollIndex>0 layout gap bug;
+  // onStartReached immediately prepends older verses once first layout commits using ScrollAnchor.
+  const [{ verses, initialTargetId }, setWindowState] =
     useState<InitialWindowState>(() => {
       const target = parseReference(tab.reference);
       const targetId = getVerseIdSync(
@@ -90,15 +100,16 @@ export default function BibleReader({
         target.chapter,
         target.verse
       );
-      const startId = Math.max(1, targetId - WINDOW_BATCH_SIZE);
       const endId = Math.min(TOTAL_BIBLE_VERSES, targetId + WINDOW_BATCH_SIZE);
-      const initialVerses = getVersesByIdRangeSync(db, startId, endId);
+      const initialVerses = getVersesByIdRangeSync(db, targetId, endId);
       return {
         verses: initialVerses,
-        initialIndex: Math.max(0, targetId - startId),
         initialTargetId: targetId,
       };
     });
+
+  const versesRef = useRef(verses);
+  versesRef.current = verses;
 
   const [arrivalVerseId, setArrivalVerseId] = useState<number | null>(() =>
     tab.highlightRef ? initialTargetId : null
@@ -183,25 +194,41 @@ export default function BibleReader({
     });
   }, [db]);
 
+  const syncVisibleTopItem = useCallback((item: VerseRow | undefined) => {
+    if (!hasLoadedRef.current || !isActiveRef.current || !item) {
+      return;
+    }
+    syncRefCallback.current(
+      tabIndexRef.current,
+      `${item.book},${item.chapter},${item.verse}`
+    );
+  }, []);
+
+  const handleScroll = useCallback(() => {
+    if (!hasLoadedRef.current || !isActiveRef.current) {
+      return;
+    }
+    const firstIdx = listRef.current?.getFirstVisibleIndex() ?? -1;
+    if (firstIdx >= 0) {
+      syncVisibleTopItem(versesRef.current[firstIdx]);
+    }
+  }, [syncVisibleTopItem]);
+
   const onViewableItemsChanged = useCallback(
     ({ viewableItems }: { viewableItems: ViewToken<VerseRow>[] }) => {
-      if (!hasLoadedRef.current || viewableItems.length === 0) {
-        return;
-      }
-      const topItem = viewableItems[0]?.item;
-      if (topItem) {
-        syncRefCallback.current(
-          tabIndexRef.current,
-          `${topItem.book},${topItem.chapter},${topItem.verse}`
-        );
+      if (viewableItems.length > 0) {
+        syncVisibleTopItem(viewableItems[0]?.item);
       }
     },
-    []
+    [syncVisibleTopItem]
   );
 
   const viewabilityConfigCallbackPairs = useRef([
     {
-      viewabilityConfig: { itemVisiblePercentThreshold: 50 },
+      viewabilityConfig: {
+        itemVisiblePercentThreshold: 30,
+        minimumViewTime: 0,
+      },
       onViewableItemsChanged,
     },
   ]);
@@ -264,10 +291,16 @@ export default function BibleReader({
     theme === "dark" ? "rgba(255,255,255,0.09)" : "rgba(0,0,0,0.06)";
 
   return (
-    <View style={[styles.container, { backgroundColor: bgColor }]}>
+    <View
+      style={[
+        styles.container,
+        { backgroundColor: bgColor },
+        !isActive && styles.hiddenTab,
+      ]}
+    >
       <FlashList
+        ref={listRef}
         data={verses}
-        initialScrollIndex={initialIndex}
         keyExtractor={(item) => `${item.id}`}
         getItemType={(item) => {
           if (item.verse !== 1) return "verse";
@@ -283,6 +316,8 @@ export default function BibleReader({
           selectedVerseId: selectedVerse?.id ?? null,
         }}
         showsVerticalScrollIndicator={false}
+        scrollEventThrottle={32}
+        onScroll={handleScroll}
         onScrollBeginDrag={() => {
           if (selectedVerse) {
             setSelectedVerse(null);
@@ -417,7 +452,7 @@ export default function BibleReader({
                       {item.text}
                     </Text>
                   ) : (
-                    <Text>
+                    <Text style={styles.dropCapParagraph}>
                       <Text
                         style={{
                           fontSize: 30 + numericSize,
@@ -430,7 +465,6 @@ export default function BibleReader({
                       <Text
                         style={{
                           fontSize: numericSize,
-                          lineHeight,
                           color: textColor,
                         }}
                       >
@@ -566,6 +600,12 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     paddingHorizontal: 14,
+  },
+  hiddenTab: {
+    display: "none",
+  },
+  dropCapParagraph: {
+    paddingTop: 2,
   },
   bibleTopSpacing: {
     paddingTop: 8,

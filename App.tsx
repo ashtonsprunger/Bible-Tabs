@@ -12,7 +12,7 @@ import { NavigationBar } from "expo-navigation-bar";
 import * as ScreenOrientation from "expo-screen-orientation";
 import { SQLiteProvider } from "expo-sqlite";
 import { StatusBar } from "expo-status-bar";
-import React, { useEffect, useMemo } from "react";
+import React, { useEffect, useMemo, useRef } from "react";
 import { BackHandler, Platform, StyleSheet, View } from "react-native";
 import {
   SafeAreaProvider,
@@ -33,9 +33,12 @@ const Stack = createNativeStackNavigator<RootStackParamList>();
 
 type HomeScreenProps = NativeStackScreenProps<RootStackParamList, "Home">;
 
+const MAX_MOUNTED_TABS = 8;
+
 function HomeScreen({ navigation }: HomeScreenProps) {
   const insets = useSafeAreaInsets();
   const isFocused = useIsFocused();
+  const mountedOrderRef = useRef<string[]>([]);
 
   const tabs = useAppStore((s) => s.tabs);
   const currentTab = useAppStore((s) => s.currentTab);
@@ -65,6 +68,19 @@ function HomeScreen({ navigation }: HomeScreenProps) {
   }, [isFocused, showSearch, setShowSearch]);
 
   const activeTab = tabs[currentTab];
+  const validTabIds = new Set(tabs.map((t) => t.id));
+  const filteredOrder = mountedOrderRef.current.filter((id) =>
+    validTabIds.has(id)
+  );
+  if (activeTab) {
+    const withoutActive = filteredOrder.filter((id) => id !== activeTab.id);
+    withoutActive.push(activeTab.id);
+    mountedOrderRef.current = withoutActive.slice(-MAX_MOUNTED_TABS);
+  } else {
+    mountedOrderRef.current = filteredOrder.slice(-MAX_MOUNTED_TABS);
+  }
+  const mountedTabIds = new Set(mountedOrderRef.current);
+
   const isLightStatusContent = theme === "dark";
 
   return (
@@ -112,21 +128,26 @@ function HomeScreen({ navigation }: HomeScreenProps) {
         />
       ) : null}
 
-      {/* Active Bible Reader or Empty State */}
+      {/* Mounted Bible Readers (up to 8 kept alive for instant sub-pixel tab switching) */}
       {tabs.length === 0 ? (
         <WhyEmpty theme={theme} />
-      ) : activeTab ? (
-        <BibleReader
-          key={`${activeTab.id}:${activeTab.navVersion}`}
-          tab={activeTab}
-          tabIndex={currentTab}
-          theme={theme}
-          color={color}
-          textSize={textSize}
-          bottomInset={insets.bottom}
-          onSyncScrolledReference={syncScrolledReference}
-        />
-      ) : null}
+      ) : (
+        tabs.map((tabItem, idx) =>
+          mountedTabIds.has(tabItem.id) ? (
+            <BibleReader
+              key={`${tabItem.id}:${tabItem.navVersion}`}
+              tab={tabItem}
+              tabIndex={idx}
+              isActive={idx === currentTab}
+              theme={theme}
+              color={color}
+              textSize={textSize}
+              bottomInset={insets.bottom}
+              onSyncScrolledReference={syncScrolledReference}
+            />
+          ) : null
+        )
+      )}
     </View>
   );
 }
