@@ -1,0 +1,24 @@
+{
+  "rewrites": [
+    { "source": "/privacy", "destination": "/privacy-policy.html" },
+    { "source": "/privacy-policy", "destination": "/privacy-policy.html" },
+    { "source": "/delete-data", "destination": "/delete-data.html" },
+    { "source": "/support", "destination": "/support.html" }
+  ],
+  "headers": [
+    {
+      "source": "/app-ads.txt",
+      "headers": [
+        { "key": "Content-Type", "value": "text/plain; charset=utf-8" },
+        { "key": "Cache-Control", "value": "public, max-age=3600" }
+      ]
+    },
+    {
+      "source": "/(.*)",
+      "headers": [
+        { "key": "X-Content-Type-Options", "value": "nosniff" },
+        { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" }
+      ]
+    }
+  ]
+}
