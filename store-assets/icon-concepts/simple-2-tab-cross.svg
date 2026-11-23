@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <!-- Bold original cobalt blue background (#0A58CA) -->
+  <rect width="1024" height="1024" fill="#0A58CA"/>
+
+  <!-- Second tab peeking behind in original light sky blue (#E2F5FF) -->
+  <path d="M482 288 C482 254 510 226 544 226 L754 226 C788 226 816 254 816 288 L816 360 L482 360 Z" fill="#E2F5FF" opacity="0.48"/>
+
+  <!-- Clean white active browser tab card -->
+  <path d="M188 332 L188 272 C188 238 216 210 250 210 L460 210 C494 210 522 238 522 272 L522 314 L774 314 C808 314 836 342 836 376 L836 748 C836 782 808 810 774 810 L250 810 C216 810 188 782 188 748 Z" fill="#FFFFFF"/>
+
+  <!-- Single crisp cobalt cross centered inside the active tab -->
+  <rect x="482" y="404" width="60" height="316" rx="30" fill="#0A58CA"/>
+  <rect x="394" y="488" width="236" height="60" rx="30" fill="#0A58CA"/>
+</svg>

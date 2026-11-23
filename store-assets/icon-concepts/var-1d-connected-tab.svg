@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <!-- Original Bible Tabs sky-blue background -->
+  <rect width="1024" height="1024" fill="#E2F5FF"/>
+
+  <!-- Secondary inactive tab tucked behind right page -->
+  <rect x="526" y="274" width="222" height="134" rx="32" fill="#60A5FA"/>
+
+  <!-- Sleek wide low-profile active browser tab shell merging into book -->
+  <rect x="218" y="252" width="272" height="164" rx="34" fill="#0A58CA"/>
+
+  <!-- Bold open Bible silhouette in original cobalt -->
+  <path d="M512 404 C452 364 336 352 218 364 Q190 368 190 396 L190 730 Q190 758 218 754 C336 740 446 752 512 796 C578 752 688 740 806 754 Q834 758 834 730 L834 396 Q834 368 806 364 C688 352 572 364 512 404 Z" fill="#0A58CA"/>
+
+  <!-- Active white tab seamlessly connected into the left open page -->
+  <path d="M276 292 L434 292 Q450 292 450 308 L450 402 Q450 416 462 422 L490 438 L490 736 C436 704 338 694 238 704 L238 408 Q238 398 248 396 Q260 394 260 382 L260 308 Q260 292 276 292 Z" fill="#FFFFFF"/>
+
+  <!-- Clean white right page -->
+  <path d="M534 438 C588 406 686 396 786 406 L786 704 C686 694 588 704 534 736 Z" fill="#FFFFFF"/>
+</svg>

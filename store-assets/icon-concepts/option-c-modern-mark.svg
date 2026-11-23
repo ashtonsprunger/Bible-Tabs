@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <defs>
+    <linearGradient id="bgC" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#F8FAFC"/>
+      <stop offset="100%" stop-color="#E8F1FD"/>
+    </linearGradient>
+    <linearGradient id="bookC" x1="0" y1="0" x2="0.8" y2="1">
+      <stop offset="0%" stop-color="#2563EB"/>
+      <stop offset="100%" stop-color="#1D4ED8"/>
+    </linearGradient>
+    <filter id="shadowC" x="-15%" y="-15%" width="130%" height="135%">
+      <feDropShadow dx="0" dy="18" stdDeviation="20" flood-color="#1E3A8A" flood-opacity="0.22"/>
+    </filter>
+  </defs>
+
+  <!-- Crisp Light Paper-Blue Background (nod to original Bible Tabs palette) -->
+  <rect width="1024" height="1024" fill="url(#bgC)"/>
+
+  <!-- Three stepped side index tabs extending from the right edge of the Bible -->
+  <rect x="690" y="264" width="120" height="122" rx="28" fill="#60A5FA"/>
+  <rect x="690" y="424" width="120" height="122" rx="28" fill="#F59E0B"/>
+  <rect x="690" y="584" width="120" height="122" rx="28" fill="#3B82F6"/>
+
+  <!-- Main Closed Bible Body -->
+  <g filter="url(#shadowC)">
+    <rect x="218" y="196" width="516" height="632" rx="54" fill="url(#bookC)"/>
+    <!-- Spine highlight band on left -->
+    <path d="M272 196 L310 196 L310 828 L272 828 C242 828 218 804 218 774 L218 250 C218 220 242 196 272 196 Z" fill="#1E40AF"/>
+    <!-- Subtle bottom page-edge groove -->
+    <rect x="284" y="742" width="414" height="32" rx="16" fill="#EFF6FF"/>
+  </g>
+
+  <!-- Clean geometric Cross on the Bible cover -->
+  <rect x="494" y="314" width="44" height="308" rx="22" fill="#FFFFFF"/>
+  <rect x="404" y="396" width="224" height="44" rx="22" fill="#FFFFFF"/>
+</svg>

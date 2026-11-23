@@ -2,7 +2,7 @@
   "expo": {
     "name": "Bible Tabs",
     "slug": "EsvBible",
-    "version": "5.1.0",
+    "version": "5.2.0",
     "orientation": "portrait",
     "icon": "./assets/splash-icon.png",
     "ios": {
@@ -11,7 +11,7 @@
     },
     "android": {
       "package": "ashtonsprunger.bibletabs",
-      "versionCode": 26,
+      "versionCode": 29,
       "predictiveBackGestureEnabled": true,
       "icon": "./assets/icon.png",
       "adaptiveIcon": {
@@ -34,7 +34,8 @@
       "expo-sqlite",
       "expo-asset",
       "expo-screen-orientation",
-      "expo-status-bar"
+      "expo-status-bar",
+      "./plugins/withAndroidBackupRules"
     ],
     "extra": {
       "eas": {

@@ -3,107 +3,77 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Data &amp; Deletion — Bible Tabs | Sprunger Studios</title>
-  <meta name="description" content="How to clear or delete your locally stored Bible Tabs tabs and preferences. Bible Tabs stores zero user data on external servers." />
+  <title>Data &amp; Deletion — Bible Tabs</title>
+  <meta name="description" content="How to delete your locally stored tabs, highlights, notes, and preferences in Bible Tabs." />
   <link rel="icon" type="image/png" href="/icon.png" />
-  <style>
-    body {
-      margin: 0;
-      padding: 40px 20px;
-      background: #080C14;
-      color: #E2E8F0;
-      font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
-      line-height: 1.65;
-    }
-    main {
-      max-width: 720px;
-      margin: 0 auto;
-      background: #131A27;
-      border: 2px solid #26344B;
-      border-radius: 16px;
-      padding: 32px;
-    }
-    h1 { color: #F8FAFC; margin-top: 0; font-size: 28px; }
-    h2 { color: #38BDF8; font-size: 18px; margin-top: 26px; }
-    p, li { color: #CBD5E1; font-size: 15px; }
-    .meta { color: #94A3B8; font-size: 13px; margin-bottom: 24px; }
-    .steps {
-      background: #0C121E;
-      border: 1.5px solid #26344B;
-      border-radius: 12px;
-      padding: 18px 22px;
-    }
-    code {
-      background: #080C14;
-      padding: 2px 6px;
-      border-radius: 5px;
-      font-size: 13.5px;
-      color: #E2E8F0;
-    }
-    a { color: #7DD3FC; }
-    @media (max-width: 600px) {
-      body { padding: 18px 12px; }
-      main { padding: 22px 18px; }
-      h1 { font-size: 24px; }
-    }
-  </style>
+  <link rel="stylesheet" href="/style.css" />
 </head>
 <body>
-  <main>
-    <h1>Data &amp; Deletion — Bible Tabs</h1>
-    <div class="meta">App: <strong>Bible Tabs</strong> (<code>ashtonsprunger.bibletabs</code>) &bull; Developer: <strong>Sprunger Studios</strong> (Ashton Sprunger)</div>
+  <div class="wrap">
+    <header class="site-header">
+      <a class="brand" href="/">
+        <img src="/icon.png" alt="Bible Tabs" />
+        <span class="brand-name">Bible Tabs</span>
+      </a>
+      <nav class="site-nav" aria-label="Primary">
+        <a href="/read">Web Reader</a>
+        <a href="/publishers">Publishers</a>
+        <a href="/support">Support</a>
+        <a href="/privacy">Privacy</a>
+      </nav>
+    </header>
 
-    <p>
-      <strong>Bible Tabs</strong> by <strong>Sprunger Studios</strong> operates <strong>100% offline</strong>. It does not create user accounts,
-      does not collect personal profiles, and does not sync or store any user data on Sprunger Studios servers.
-      All open tabs and display settings reside strictly on your own device and can be deleted immediately at any time using the steps below.
-    </p>
+    <main>
+      <h1>Data &amp; Deletion</h1>
+      <p class="meta">Bible Tabs (<code>ashtonsprunger.bibletabs</code>) &middot; Sprunger Studios</p>
 
-    <h2>1. Remove Individual Tabs Inside Bible Tabs</h2>
-    <div class="steps" style="margin-bottom: 18px;">
-      <ol>
-        <li>Open <strong>Bible Tabs</strong> on your device.</li>
-        <li>Tap the currently active tab in the top tab bar to open the Tab menu.</li>
-        <li>Tap <strong>Remove Tab</strong> to delete that tab and its saved scroll position immediately.</li>
-      </ol>
-    </div>
+      <p>
+        Bible Tabs does not create user accounts or store any data on external servers. All tabs, highlights, study notes, and preferences live strictly on your own device and can be removed immediately at any time.
+      </p>
 
-    <h2>2. Permanently Delete All Local App Data</h2>
-    <div class="steps">
-      <p style="margin-top: 0;"><strong>On Android:</strong></p>
-      <ol>
-        <li>Open your device's <strong>Settings</strong> app.</li>
-        <li>Go to <strong>Apps &rarr; Bible Tabs &rarr; Storage &amp; cache</strong>.</li>
-        <li>Tap <strong>Clear storage</strong> (or <strong>Clear data</strong>) to erase all saved tabs and preferences, or simply uninstall <strong>Bible Tabs</strong>.</li>
-      </ol>
-      <p style="margin-bottom: 6px;"><strong>On iOS:</strong></p>
-      <ol style="margin-top: 0; margin-bottom: 0;">
-        <li>Press and hold the <strong>Bible Tabs</strong> icon on your Home Screen and choose <strong>Remove App &rarr; Delete App</strong> to permanently remove all local app data.</li>
-      </ol>
-    </div>
+      <h2>1. Delete Individual Items Inside Bible Tabs</h2>
+      <ul>
+        <li><strong>Remove a tab:</strong> Tap the active tab in the top bar, then tap <strong>Remove Tab</strong>.</li>
+        <li><strong>Remove a highlight or note:</strong> Tap or long-press the verse to clear a highlight or delete a note, or manage items from the <strong>Notebook</strong> screen.</li>
+      </ul>
 
-    <h2>3. Types of Data Deleted, Kept &amp; Retention Period</h2>
-    <ul>
-      <li><strong>Data Deleted on Your Device:</strong>
-        <ul>
-          <li>Saved Bible tabs, custom tab names, active tab index, and chapter/verse reading positions.</li>
-          <li>Local appearance preferences (Light/Sepia/Dark theme, accent color, text size, and screen orientation setting).</li>
-        </ul>
-      </li>
-      <li><strong>Data Kept by Sprunger Studios:</strong> <strong>None (0 bytes).</strong> Bible Tabs never uploads or stores user data on external servers.</li>
-      <li><strong>Additional Retention Period:</strong> <strong>None (immediate local deletion).</strong></li>
-    </ul>
+      <h2>2. Delete All Local Data Permanently</h2>
+      <div class="note">
+        <p><strong>On Android:</strong> Open system <strong>Settings &rarr; Apps &rarr; Bible Tabs &rarr; Storage &amp; cache &rarr; Clear storage</strong> (or uninstall the app).</p>
+        <p><strong>On iOS:</strong> Press and hold the Bible Tabs icon and choose <strong>Remove App &rarr; Delete App</strong>.</p>
+        <p><strong>In the Web Reader:</strong> Clear site data / cookies for <code>bibletabs.sprungerstudios.app</code> in your browser settings.</p>
+      </div>
 
-    <p>
-      <strong>Questions?</strong> Contact Sprunger Studios at
-      <a href="mailto:support@sprungerstudios.app?subject=Bible%20Tabs%20Data%20Inquiry">support@sprungerstudios.app</a>.
-    </p>
+      <h2>3. Retention Summary</h2>
+      <table class="facts">
+        <tr>
+          <th>Deleted locally</th>
+          <td>Open tabs, custom tab names, reading positions, verse highlights, study notes, and display/translation preferences.</td>
+        </tr>
+        <tr>
+          <th>Kept on servers</th>
+          <td>None (0 bytes). Sprunger Studios never receives or stores your data.</td>
+        </tr>
+        <tr>
+          <th>Retention period</th>
+          <td>None — deletion takes effect immediately on your device.</td>
+        </tr>
+      </table>
 
-    <p style="margin-top: 26px; font-size: 14px;">
-      <a href="/privacy-policy.html">&larr; View Full Privacy Policy</a> &bull;
-      <a href="/">Bible Tabs Home</a> &bull;
-      <a href="/support.html">Support &amp; FAQ</a>
-    </p>
-  </main>
+      <p style="margin-top: 24px;">
+        Questions? Email <a href="mailto:ashton.sprunger@gmail.com?subject=Bible%20Tabs%20Data%20Inquiry">ashton.sprunger@gmail.com</a>.
+      </p>
+    </main>
+
+    <footer class="site-footer">
+      <div>Ashton Sprunger &middot; Sprunger Studios</div>
+      <div class="footer-links">
+        <a href="/">Home</a>
+        <a href="/read">Web Reader</a>
+        <a href="/privacy">Privacy</a>
+        <a href="/support">Support</a>
+      </div>
+    </footer>
+  </div>
 </body>
 </html>

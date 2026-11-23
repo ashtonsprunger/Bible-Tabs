@@ -5,8 +5,7 @@ import {
 } from "@shopify/flash-list";
 import * as Clipboard from "expo-clipboard";
 import * as Haptics from "expo-haptics";
-import { useSQLiteContext } from "expo-sqlite";
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   BackHandler,
   Linking,
@@ -23,29 +22,86 @@ import {
 import {
   BOOKS,
   PSALMS_BOOK_INDEX,
-  formatVerseCitation,
+  compareBibleRefs,
+  formatChapterLabel,
+  formatMultiVerseCitation,
+  formatVerseRangeCitation,
+  getAdjacentChapterRef,
   getGotQuestionsBookUrl,
+  makeVerseKey,
   parseReference,
 } from "../constants/books";
-import { colors } from "../constants/colors";
+import {
+  HIGHLIGHT_COLORS,
+  colors,
+  highlightColors,
+  uiTokens,
+} from "../constants/colors";
+import {
+  API_BIBLE_ATTRIBUTION_URL,
+  TRANSLATIONS,
+  isApiTranslation,
+} from "../constants/translations";
+import {
+  getScriptureFontFamily,
+  getUiFontFamily,
+} from "../constants/typography";
+import {
+  getApiBibleChapterAsync,
+  getCachedApiChapterSync,
+  getCachedApiVersesByRefsSync,
+} from "../api/apiBibleClient";
+import type { ParsedApiChapter } from "../api/apiBibleParser";
+import { useBibleDb } from "../db/BibleDbContext";
 import {
   BLOCK_FLAG_STANZA_BREAK,
-  TOTAL_BIBLE_BLOCKS,
-  getBlocksByIdRangeSync,
-  getTargetBlockIdSync,
-  getVerseDetailsSync,
+  getChapterBlocksAsync,
+  getChapterBlocksSync,
+  getChapterFootnotesAsync,
+  getChapterFootnotesSync,
+  getVersesByRefsAsync,
+  getVersesByRefsSync,
 } from "../db/queries";
-import type { RuntimeTab } from "../store/useAppStore";
+import { useAppStore, type RuntimeTab } from "../store/useAppStore";
+import { useStudyStore } from "../store/useStudyStore";
 import type {
   AccentColorName,
+  BibleReference,
+  FontFamilyOption,
+  HighlightColor,
+  NoteEditorParams,
+  NoteRecord,
   ParsedBlockRow,
   TextSizeOption,
   ThemeName,
+  TranslationId,
   VerseRow,
   VerseSegment,
 } from "../types";
 
-const WINDOW_BATCH_SIZE = 90;
+const blockKeyExtractor = (item: ParsedBlockRow) => String(item.id);
+
+const blockGetItemType = (item: ParsedBlockRow) => {
+  if (item.kind === "header") return "header";
+  if (
+    item.kind === "q1" ||
+    item.kind === "q2" ||
+    item.kind === "qr" ||
+    item.kind === "li1" ||
+    item.kind === "li2"
+  ) {
+    return "poetry";
+  }
+  let chars = 0;
+  if (item.segments) {
+    for (let i = 0; i < item.segments.length; i++) {
+      chars += item.segments[i].t.length;
+    }
+  }
+  if (chars < 120) return "proseS";
+  if (chars < 280) return "proseM";
+  return "proseL";
+};
 
 interface BibleReaderProps {
   tab: RuntimeTab;
@@ -54,8 +110,13 @@ interface BibleReaderProps {
   theme: ThemeName;
   color: AccentColorName;
   textSize: TextSizeOption;
+  fontFamily: FontFamilyOption;
+  translation: TranslationId;
+  isDesktop: boolean;
   bottomInset: number;
   onSyncScrolledReference: (tabIndex: number, refString: string) => void;
+  onNavigateChapter: (tabIndex: number, ref: BibleReference) => void;
+  onOpenNoteEditor: (params: NoteEditorParams) => void;
 }
 
 interface InitialWindowState {
@@ -63,11 +124,9 @@ interface InitialWindowState {
   initialArrivalKey: string | null;
 }
 
-function makeVerseKey(book: number, chapter: number, verse: number): string {
-  return `${book},${chapter},${verse}`;
-}
-
-function hasMultipleDistinctVerses(segments: VerseSegment[] | undefined): boolean {
+function hasMultipleDistinctVerses(
+  segments: VerseSegment[] | undefined
+): boolean {
   if (!segments || segments.length <= 1) {
     return false;
   }
@@ -96,14 +155,24 @@ export default function BibleReader({
   theme,
   color,
   textSize,
+  fontFamily,
+  translation,
+  isDesktop,
   bottomInset,
   onSyncScrolledReference,
+  onNavigateChapter,
+  onOpenNoteEditor,
 }: BibleReaderProps) {
-  const db = useSQLiteContext();
+  const { db } = useBibleDb();
+  const setTranslation = useAppStore((s) => s.setTranslation);
+  const isWeb = Platform.OS === "web";
+  const isApi = isApiTranslation(translation);
+  const targetRef = useMemo(() => parseReference(tab.reference), [tab.reference]);
+
   const listRef = useRef<FlashListRef<ParsedBlockRow>>(null);
   const hasLoadedRef = useRef(false);
-  const isPrependingRef = useRef(false);
-  const isAppendingRef = useRef(false);
+  const lastSyncedRefStringRef = useRef<string | null>(null);
+  const syncTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const isActiveRef = useRef(isActive);
   isActiveRef.current = isActive;
@@ -112,27 +181,183 @@ export default function BibleReader({
   const syncRefCallback = useRef(onSyncScrolledReference);
   syncRefCallback.current = onSyncScrolledReference;
 
-  // Mount starting at target block (index 0) to avoid FlashList v2's initialScrollIndex > 0 layout gap bug;
-  // onStartReached immediately prepends older blocks once first layout commits via native ScrollAnchor.
+  const highlightsByKey = useStudyStore((s) => s.highlightsByKey);
+  const notesById = useStudyStore((s) => s.notesById);
+  const noteIdsByVerseKey = useStudyStore((s) => s.noteIdsByVerseKey);
+  const studyRevision = useStudyStore((s) => s.revision);
+  const setVersesHighlight = useStudyStore((s) => s.setVersesHighlight);
+
+  const initialApiChapter = useMemo(() => {
+    if (!isApi) return null;
+    return getCachedApiChapterSync(translation, targetRef.book, targetRef.chapter);
+  }, [isApi, translation, targetRef.book, targetRef.chapter]);
+
+  const [apiChapter, setApiChapter] = useState<ParsedApiChapter | null>(
+    initialApiChapter
+  );
+  const [apiLoading, setApiLoading] = useState<boolean>(
+    isApi && !initialApiChapter
+  );
+  const [apiError, setApiError] = useState<string | null>(null);
+  const [apiRetryTick, setApiRetryTick] = useState(0);
+  const didScrollTargetRef = useRef(false);
+
+  const [localFootnotes, setLocalFootnotes] = useState<
+    Array<{ verse: number; text: string }>
+  >(() => {
+    if (isApi || isWeb) return [];
+    return getChapterFootnotesSync(db, targetRef.book, targetRef.chapter);
+  });
+
   const [{ blocks, initialArrivalKey }, setWindowState] =
     useState<InitialWindowState>(() => {
-      const target = parseReference(tab.reference);
-      const { blockId, resolvedVerse } = getTargetBlockIdSync(
+      if (isApi) {
+        return {
+          blocks: initialApiChapter?.blocks ?? [],
+          initialArrivalKey: tab.highlightRef
+            ? makeVerseKey(targetRef.book, targetRef.chapter, targetRef.verse)
+            : null,
+        };
+      }
+      if (isWeb) {
+        return { blocks: [], initialArrivalKey: null };
+      }
+      const chapterBlocks = getChapterBlocksSync(
         db,
-        target.book,
-        target.chapter,
-        target.verse,
-        Boolean(tab.highlightRef)
+        targetRef.book,
+        targetRef.chapter
       );
-      const endId = Math.min(TOTAL_BIBLE_BLOCKS, blockId + WINDOW_BATCH_SIZE);
-      const initialBlocks = getBlocksByIdRangeSync(db, blockId, endId);
       return {
-        blocks: initialBlocks,
+        blocks: chapterBlocks,
         initialArrivalKey: tab.highlightRef
-          ? makeVerseKey(target.book, target.chapter, resolvedVerse)
+          ? makeVerseKey(targetRef.book, targetRef.chapter, targetRef.verse)
           : null,
       };
     });
+
+  // API.Bible single-chapter loader (defers network call for inactive tabs; 180ms debounce on uncached chapters so rapid clicking skips intermediate API calls)
+  useEffect(() => {
+    if (!isApi) return;
+    if (!isActive && !initialApiChapter) {
+      return;
+    }
+    let cancelled = false;
+    const forceRefresh = apiRetryTick > 0;
+    const needsFetch = !initialApiChapter || forceRefresh;
+    if (needsFetch) {
+      setApiLoading(true);
+    }
+    setApiError(null);
+
+    const runFetch = () => {
+      getApiBibleChapterAsync(translation, targetRef.book, targetRef.chapter, {
+        forceRefresh,
+      })
+        .then((loaded) => {
+          if (cancelled) return;
+          setApiChapter(loaded);
+          setApiLoading(false);
+          setApiError(null);
+          const arrivalKey = tab.highlightRef
+            ? makeVerseKey(targetRef.book, targetRef.chapter, targetRef.verse)
+            : null;
+          setWindowState({
+            blocks: loaded.blocks,
+            initialArrivalKey: arrivalKey,
+          });
+          if (arrivalKey) {
+            setArrivalVerseKey(arrivalKey);
+          }
+        })
+        .catch((err) => {
+          if (cancelled) return;
+          setApiLoading(false);
+          setApiError(
+            err instanceof Error
+              ? err.message
+              : "Could not load chapter. Check your internet connection."
+          );
+        });
+    };
+
+    if (!needsFetch) {
+      runFetch();
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    const timer = setTimeout(runFetch, 180);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [
+    isApi,
+    isActive,
+    translation,
+    targetRef.book,
+    targetRef.chapter,
+    targetRef.verse,
+    tab.highlightRef,
+    initialApiChapter,
+    apiRetryTick,
+  ]);
+
+  // Web async single-chapter load for local SQLite DBs
+  useEffect(() => {
+    if (!isWeb || isApi) return;
+    let cancelled = false;
+    Promise.all([
+      getChapterBlocksAsync(db, targetRef.book, targetRef.chapter),
+      getChapterFootnotesAsync(db, targetRef.book, targetRef.chapter),
+    ]).then(([chapterBlocks, fns]) => {
+      if (cancelled) return;
+      const arrivalKey = tab.highlightRef
+        ? makeVerseKey(targetRef.book, targetRef.chapter, targetRef.verse)
+        : null;
+      setLocalFootnotes(fns);
+      setWindowState({
+        blocks: chapterBlocks,
+        initialArrivalKey: arrivalKey,
+      });
+      if (arrivalKey) {
+        setArrivalVerseKey(arrivalKey);
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    isWeb,
+    isApi,
+    db,
+    targetRef.book,
+    targetRef.chapter,
+    targetRef.verse,
+    tab.highlightRef,
+  ]);
+
+  // Scroll cleanly to target verse when jumping to verse > 1 (both offline & online chapters)
+  useEffect(() => {
+    if (didScrollTargetRef.current || blocks.length === 0) return;
+    if (targetRef.verse <= 1) {
+      didScrollTargetRef.current = true;
+      return;
+    }
+    const idx = blocks.findIndex(
+      (b) =>
+        b.kind !== "header" &&
+        b.segments?.some((seg) => seg.v >= targetRef.verse)
+    );
+    if (idx > 0) {
+      didScrollTargetRef.current = true;
+      const timer = setTimeout(() => {
+        listRef.current?.scrollToIndex({ index: idx, animated: false });
+      }, 60);
+      return () => clearTimeout(timer);
+    }
+  }, [blocks, targetRef.verse]);
 
   const blocksRef = useRef(blocks);
   blocksRef.current = blocks;
@@ -140,12 +365,129 @@ export default function BibleReader({
   const [arrivalVerseKey, setArrivalVerseKey] = useState<string | null>(
     initialArrivalKey
   );
-  const [selectedVerse, setSelectedVerse] = useState<VerseRow | null>(null);
-  const [copiedBanner, setCopiedBanner] = useState<string | null>(null);
+  const [selectedRefs, setSelectedRefs] = useState<BibleReference[]>([]);
+  const [webSelectedVerseRows, setWebSelectedVerseRows] = useState<VerseRow[]>([]);
+  const [toastBanner, setToastBanner] = useState<string | null>(null);
 
-  const selectedVerseKey = selectedVerse
-    ? makeVerseKey(selectedVerse.book, selectedVerse.chapter, selectedVerse.verse)
-    : null;
+  const isSelecting = selectedRefs.length > 0;
+
+  const selectedKeySet = useMemo(() => {
+    const set = new Set<string>();
+    for (const ref of selectedRefs) {
+      set.add(makeVerseKey(ref.book, ref.chapter, ref.verse));
+    }
+    return set;
+  }, [selectedRefs]);
+
+  const selectedKeysSignature = useMemo(() => {
+    if (selectedRefs.length === 0) return "";
+    return selectedRefs
+      .map((r) => makeVerseKey(r.book, r.chapter, r.verse))
+      .join("|");
+  }, [selectedRefs]);
+
+  useEffect(() => {
+    if (!isWeb || isApi) return;
+    if (selectedRefs.length === 0) {
+      setWebSelectedVerseRows([]);
+      return;
+    }
+    let cancelled = false;
+    getVersesByRefsAsync(db, selectedRefs).then((rows) => {
+      if (!cancelled) {
+        setWebSelectedVerseRows(rows);
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [isWeb, isApi, db, selectedRefs]);
+
+  const selectedVerseRows: VerseRow[] = useMemo(() => {
+    if (selectedRefs.length === 0) return [];
+    if (isApi) {
+      const out: VerseRow[] = [];
+      for (const ref of selectedRefs) {
+        if (
+          apiChapter &&
+          apiChapter.book === ref.book &&
+          apiChapter.chapter === ref.chapter
+        ) {
+          const hit = apiChapter.versesByNumber[ref.verse];
+          if (hit) {
+            out.push(hit);
+            continue;
+          }
+        }
+        const cached = getCachedApiVersesByRefsSync(translation, [ref]);
+        if (cached[0]) out.push(cached[0]);
+      }
+      return out;
+    }
+    if (isWeb) return webSelectedVerseRows;
+    return getVersesByRefsSync(db, selectedRefs);
+  }, [isApi, apiChapter, translation, isWeb, db, selectedRefs, webSelectedVerseRows]);
+
+  const overlappingNotes: NoteRecord[] = useMemo(() => {
+    if (selectedRefs.length === 0) return [];
+    const seen = new Set<string>();
+    const out: NoteRecord[] = [];
+    for (const ref of selectedRefs) {
+      const ids =
+        noteIdsByVerseKey[makeVerseKey(ref.book, ref.chapter, ref.verse)];
+      if (!ids) continue;
+      for (const id of ids) {
+        if (!seen.has(id) && notesById[id]) {
+          seen.add(id);
+          out.push(notesById[id]);
+        }
+      }
+    }
+    out.sort((a, b) => b.updatedAt - a.updatedAt);
+    return out;
+  }, [selectedRefs, noteIdsByVerseKey, notesById]);
+
+  const combinedFootnotes = useMemo(() => {
+    const lines: string[] = [];
+    for (const row of selectedVerseRows) {
+      if (row.footnotes) {
+        const prefix =
+          selectedVerseRows.length > 1 ? `v.${row.verse}: ` : "";
+        lines.push(`${prefix}${row.footnotes}`);
+      }
+    }
+    return lines.join("\n");
+  }, [selectedVerseRows]);
+
+  // Compute common highlight color across all selected verses (if uniform)
+  const { activeHighlightColor, anySelectedHighlighted } = useMemo(() => {
+    if (selectedRefs.length === 0) {
+      return {
+        activeHighlightColor: null as HighlightColor | null,
+        anySelectedHighlighted: false,
+      };
+    }
+    let firstColor: HighlightColor | null = null;
+    let allSame = true;
+    let anyHighlighted = false;
+
+    for (let i = 0; i < selectedRefs.length; i++) {
+      const r = selectedRefs[i];
+      const h = highlightsByKey[makeVerseKey(r.book, r.chapter, r.verse)];
+      const c = h?.color ?? null;
+      if (c) anyHighlighted = true;
+      if (i === 0) {
+        firstColor = c;
+      } else if (c !== firstColor) {
+        allSame = false;
+      }
+    }
+
+    return {
+      activeHighlightColor: allSame ? firstColor : null,
+      anySelectedHighlighted: anyHighlighted,
+    };
+  }, [selectedRefs, highlightsByKey]);
 
   useEffect(() => {
     if (arrivalVerseKey === null) {
@@ -158,80 +500,66 @@ export default function BibleReader({
   }, [arrivalVerseKey]);
 
   useEffect(() => {
-    if (!selectedVerse) {
+    if (!isSelecting || !isActive) {
       return;
     }
     const sub = BackHandler.addEventListener("hardwareBackPress", () => {
-      setSelectedVerse(null);
+      setSelectedRefs([]);
       return true;
     });
-    return () => sub.remove();
-  }, [selectedVerse]);
+    let keyCleanup: (() => void) | undefined;
+    if (isWeb && typeof window !== "undefined") {
+      const onKeyDown = (e: KeyboardEvent) => {
+        if (e.key === "Escape") {
+          setSelectedRefs([]);
+        }
+      };
+      window.addEventListener("keydown", onKeyDown);
+      keyCleanup = () => window.removeEventListener("keydown", onKeyDown);
+    }
+    return () => {
+      sub.remove();
+      keyCleanup?.();
+    };
+  }, [isSelecting, isActive, isWeb]);
 
   useEffect(() => {
-    if (!copiedBanner) {
+    if (!toastBanner) {
       return;
     }
     const timer = setTimeout(() => {
-      setCopiedBanner(null);
+      setToastBanner(null);
     }, 1600);
     return () => clearTimeout(timer);
-  }, [copiedBanner]);
+  }, [toastBanner]);
 
-  const handleStartReached = useCallback(() => {
-    if (isPrependingRef.current) {
-      return;
-    }
-    setWindowState((prev) => {
-      const firstId = prev.blocks[0]?.id;
-      if (!firstId || firstId <= 1) {
-        return prev;
+  useEffect(() => {
+    return () => {
+      if (syncTimerRef.current !== null) {
+        clearTimeout(syncTimerRef.current);
       }
-      isPrependingRef.current = true;
-      const newStartId = Math.max(1, firstId - WINDOW_BATCH_SIZE);
-      const olderBlocks = getBlocksByIdRangeSync(db, newStartId, firstId - 1);
-      isPrependingRef.current = false;
-      if (olderBlocks.length === 0) {
-        return prev;
-      }
-      return {
-        ...prev,
-        blocks: [...olderBlocks, ...prev.blocks],
-      };
-    });
-  }, [db]);
+    };
+  }, []);
 
-  const handleEndReached = useCallback(() => {
-    if (isAppendingRef.current) {
-      return;
-    }
-    setWindowState((prev) => {
-      const lastId = prev.blocks[prev.blocks.length - 1]?.id;
-      if (!lastId || lastId >= TOTAL_BIBLE_BLOCKS) {
-        return prev;
-      }
-      isAppendingRef.current = true;
-      const newEndId = Math.min(TOTAL_BIBLE_BLOCKS, lastId + WINDOW_BATCH_SIZE);
-      const newerBlocks = getBlocksByIdRangeSync(db, lastId + 1, newEndId);
-      isAppendingRef.current = false;
-      if (newerBlocks.length === 0) {
-        return prev;
-      }
-      return {
-        ...prev,
-        blocks: [...prev.blocks, ...newerBlocks],
-      };
-    });
-  }, [db]);
-
-  const syncVisibleTopItem = useCallback((item: ParsedBlockRow | undefined) => {
+  const scheduleVisibleSync = useCallback((item: ParsedBlockRow | undefined) => {
     if (!hasLoadedRef.current || !isActiveRef.current || !item) {
       return;
     }
-    syncRefCallback.current(
-      tabIndexRef.current,
-      `${item.book},${item.chapter},${item.verse}`
-    );
+    const refString = `${item.book},${item.chapter},${item.verse}`;
+    if (refString === lastSyncedRefStringRef.current) {
+      return;
+    }
+    lastSyncedRefStringRef.current = refString;
+    if (syncTimerRef.current !== null) {
+      clearTimeout(syncTimerRef.current);
+    }
+    // Defer store updates out of FlashList's synchronous scroll handler to avoid nested layout loops
+    syncTimerRef.current = setTimeout(() => {
+      syncTimerRef.current = null;
+      if (isActiveRef.current) {
+        syncRefCallback.current(tabIndexRef.current, refString);
+      }
+    }, 80);
   }, []);
 
   const handleScroll = useCallback(() => {
@@ -240,18 +568,22 @@ export default function BibleReader({
     }
     const firstIdx = listRef.current?.getFirstVisibleIndex() ?? -1;
     if (firstIdx >= 0) {
-      syncVisibleTopItem(blocksRef.current[firstIdx]);
+      scheduleVisibleSync(blocksRef.current[firstIdx]);
     }
-  }, [syncVisibleTopItem]);
+  }, [scheduleVisibleSync]);
 
   const onViewableItemsChanged = useCallback(
     ({ viewableItems }: { viewableItems: ViewToken<ParsedBlockRow>[] }) => {
       if (viewableItems.length > 0) {
-        syncVisibleTopItem(viewableItems[0]?.item);
+        scheduleVisibleSync(viewableItems[0]?.item);
       }
     },
-    [syncVisibleTopItem]
+    [scheduleVisibleSync]
   );
+
+  const handleListLoad = useCallback(() => {
+    hasLoadedRef.current = true;
+  }, []);
 
   const viewabilityConfigCallbackPairs = useRef([
     {
@@ -269,54 +601,140 @@ export default function BibleReader({
   }, []);
 
   const dismissSelection = useCallback(() => {
-    setSelectedVerse(null);
+    setSelectedRefs([]);
   }, []);
 
-  const handleSelectVerse = useCallback(
+  const toggleVerseInSelection = useCallback(
     (book: number, chapter: number, verse: number) => {
       triggerLightHaptic();
-      setSelectedVerse((prev) => {
-        if (
-          prev &&
-          prev.book === book &&
-          prev.chapter === chapter &&
-          prev.verse === verse
-        ) {
-          return null;
+      setSelectedRefs((prev) => {
+        const key = makeVerseKey(book, chapter, verse);
+        const exists = prev.some(
+          (r) => makeVerseKey(r.book, r.chapter, r.verse) === key
+        );
+        if (exists) {
+          return prev.filter(
+            (r) => makeVerseKey(r.book, r.chapter, r.verse) !== key
+          );
         }
-        return getVerseDetailsSync(db, book, chapter, verse);
+        return [...prev, { book, chapter, verse }].sort(compareBibleRefs);
       });
     },
-    [db]
+    []
   );
 
-  const handleCopySelected = async () => {
-    if (!selectedVerse) {
+  const handleVersePress = useCallback(
+    (book: number, chapter: number, verse: number) => {
+      if (selectedRefs.length > 0) {
+        toggleVerseInSelection(book, chapter, verse);
+      }
+    },
+    [selectedRefs.length, toggleVerseInSelection]
+  );
+
+  const handleNoteIndicatorPress = useCallback(
+    (book: number, chapter: number, verse: number) => {
+      if (selectedRefs.length > 0) {
+        toggleVerseInSelection(book, chapter, verse);
+        return;
+      }
+      triggerLightHaptic();
+      setSelectedRefs([{ book, chapter, verse }]);
+    },
+    [selectedRefs.length, toggleVerseInSelection]
+  );
+
+  const handleApplyHighlight = (swatchColor: HighlightColor) => {
+    if (selectedRefs.length === 0) return;
+    triggerLightHaptic();
+    const nextColor = activeHighlightColor === swatchColor ? null : swatchColor;
+    setVersesHighlight(selectedRefs, nextColor);
+  };
+
+  const handleClearHighlight = () => {
+    if (selectedRefs.length === 0) return;
+    triggerLightHaptic();
+    setVersesHighlight(selectedRefs, null);
+  };
+
+  const buildSelectedPlainQuote = (): string => {
+    if (selectedVerseRows.length === 0) return "";
+    if (selectedVerseRows.length === 1) return selectedVerseRows[0].text;
+    return selectedVerseRows.map((r) => `${r.verse} ${r.text}`).join(" ");
+  };
+
+  const handleOpenNoteForSelection = (existing?: NoteRecord) => {
+    if (selectedRefs.length === 0) return;
+    triggerLightHaptic();
+    if (existing) {
+      if (isDesktop) setSelectedRefs([]);
+      onOpenNoteEditor({
+        noteId: existing.id,
+        book: existing.book,
+        chapter: existing.chapter,
+        startVerse: existing.startVerse,
+        endVerse: existing.endVerse,
+      });
       return;
     }
-    const citation = formatVerseCitation(
-      selectedVerse.book,
-      selectedVerse.chapter,
-      selectedVerse.verse
+
+    // Anchor a new note to the contiguous span in the first selected chapter
+    const first = selectedRefs[0];
+    const sameChapter = selectedRefs.filter(
+      (r) => r.book === first.book && r.chapter === first.chapter
     );
-    const formatted = `${citation} — ${selectedVerse.text}`;
+    const startVerse = sameChapter[0].verse;
+    const endVerse = sameChapter[sameChapter.length - 1].verse;
+    const quoteRows = selectedVerseRows.filter(
+      (r) =>
+        r.book === first.book &&
+        r.chapter === first.chapter &&
+        r.verse >= startVerse &&
+        r.verse <= endVerse
+    );
+    const versePreview =
+      quoteRows.length <= 1
+        ? quoteRows[0]?.text ?? ""
+        : quoteRows.map((r) => `${r.verse} ${r.text}`).join(" ");
+
+    if (isDesktop) setSelectedRefs([]);
+    onOpenNoteEditor({
+      book: first.book,
+      chapter: first.chapter,
+      startVerse,
+      endVerse,
+      versePreview,
+    });
+  };
+
+  const formatCopyPayload = (): { citation: string; formatted: string } => {
+    const citation = formatMultiVerseCitation(selectedRefs);
+    const shortName = TRANSLATIONS[translation].shortName;
+    const body = buildSelectedPlainQuote();
+    const formatted =
+      selectedVerseRows.length <= 1
+        ? `${citation} (${shortName}) — ${body}`
+        : `${citation} (${shortName})\n${body}`;
+    return { citation, formatted };
+  };
+
+  const handleCopySelected = async () => {
+    if (selectedRefs.length === 0) {
+      return;
+    }
+    const { citation, formatted } = formatCopyPayload();
     await Clipboard.setStringAsync(formatted);
     triggerLightHaptic();
-    setSelectedVerse(null);
-    setCopiedBanner(`Copied ${citation}`);
+    setSelectedRefs([]);
+    setToastBanner(`Copied ${citation}`);
   };
 
   const handleShareSelected = async () => {
-    if (!selectedVerse) {
+    if (selectedRefs.length === 0) {
       return;
     }
-    const citation = formatVerseCitation(
-      selectedVerse.book,
-      selectedVerse.chapter,
-      selectedVerse.verse
-    );
-    const formatted = `${citation} — ${selectedVerse.text}`;
-    setSelectedVerse(null);
+    const { formatted } = formatCopyPayload();
+    setSelectedRefs([]);
     try {
       await Share.share({ message: formatted });
     } catch {
@@ -325,15 +743,18 @@ export default function BibleReader({
   };
 
   const numericSize = Number(textSize);
-  const proseLineHeight = Math.round(numericSize * 1.48);
-  const poetryLineHeight = Math.round(numericSize * 1.42);
-  const textColor = colors.bible.text[theme];
-  const bgColor = colors.bible.background[theme];
-  const inactiveBg = colors.tab.tab.inactive[theme];
+  const proseLineHeight = Math.round(numericSize * 1.56);
+  const poetryLineHeight = Math.round(numericSize * 1.46);
+  const ui = uiTokens[theme];
+  const scriptureFont = getScriptureFontFamily(fontFamily);
+  const uiFont = getUiFontFamily();
+  const textColor = ui.text;
+  const bgColor = ui.bg;
+  const inactiveBg = ui.surface;
   const accentBorder = colors.bible.color[theme][color][0];
   const accentColor = colors.bible.color[theme][color][1];
   const hasCustomTabName = Boolean(tab.name);
-  const isAtBibleEnd = blocks[blocks.length - 1]?.id === TOTAL_BIBLE_BLOCKS;
+  const translationShortName = TRANSLATIONS[translation].shortName;
 
   const blockHighlightBg =
     theme === "dark" ? "rgba(255,255,255,0.09)" : "rgba(0,0,0,0.055)";
@@ -354,22 +775,18 @@ export default function BibleReader({
     const isPsalms = item.book === PSALMS_BOOK_INDEX;
 
     const topSpacingStyle =
-      item.id === 1
+      h.isChapterStart || h.isBookStart
         ? styles.bibleTopSpacing
-        : h.isBookStart
-          ? styles.bookBreakSpacing
-          : h.isChapterStart
-            ? styles.chapterSpacing
-            : styles.midChapterHeaderSpacing;
+        : styles.midChapterHeaderSpacing;
 
     const superscriptionKey =
       h.superscriptionVerse !== undefined
         ? makeVerseKey(item.book, item.chapter, h.superscriptionVerse)
         : null;
-    const isSuperscriptionHighlighted =
-      superscriptionKey !== null &&
-      (superscriptionKey === arrivalVerseKey ||
-        superscriptionKey === selectedVerseKey);
+    const isSuperscriptionSelected =
+      superscriptionKey !== null && selectedKeySet.has(superscriptionKey);
+    const isSuperscriptionArrived =
+      superscriptionKey !== null && superscriptionKey === arrivalVerseKey;
 
     return (
       <View style={[styles.headerContainer, topSpacingStyle]}>
@@ -383,7 +800,8 @@ export default function BibleReader({
               style={[
                 styles.bookHeading,
                 {
-                  fontSize: 28 + numericSize,
+                  fontSize: 22 + numericSize,
+                  fontFamily: scriptureFont,
                   color: textColor,
                 },
               ]}
@@ -428,6 +846,7 @@ export default function BibleReader({
                 styles.psalmHeading,
                 {
                   fontSize: Math.round(8 + numericSize * 1.15),
+                  fontFamily: scriptureFont,
                   color: textColor,
                 },
               ]}
@@ -445,6 +864,7 @@ export default function BibleReader({
               {
                 fontSize: Math.round(numericSize * 1.05),
                 lineHeight: Math.round(numericSize * 1.34),
+                fontFamily: scriptureFont,
                 color: textColor,
               },
             ]}
@@ -505,11 +925,20 @@ export default function BibleReader({
           <Pressable
             disabled={h.superscriptionVerse === undefined}
             delayLongPress={260}
-            onPress={selectedVerse ? dismissSelection : undefined}
+            onPress={
+              h.superscriptionVerse !== undefined && isSelecting
+                ? () =>
+                    handleVersePress(
+                      item.book,
+                      item.chapter,
+                      h.superscriptionVerse!
+                    )
+                : undefined
+            }
             onLongPress={
               h.superscriptionVerse !== undefined
                 ? () =>
-                    handleSelectVerse(
+                    toggleVerseInSelection(
                       item.book,
                       item.chapter,
                       h.superscriptionVerse!
@@ -517,7 +946,7 @@ export default function BibleReader({
                 : undefined
             }
             style={
-              isSuperscriptionHighlighted
+              isSuperscriptionSelected || isSuperscriptionArrived
                 ? [
                     styles.highlightedBlock,
                     {
@@ -546,34 +975,86 @@ export default function BibleReader({
     );
   };
 
-  const renderSegmentContent = (seg: VerseSegment) => (
-    <>
-      {seg.c !== undefined ? (
+  const hasNoteStartingAt = (book: number, chapter: number, verse: number) => {
+    const ids = noteIdsByVerseKey[makeVerseKey(book, chapter, verse)];
+    if (!ids || ids.length === 0) return false;
+    return ids.some((id) => notesById[id]?.startVerse === verse);
+  };
+
+  const notePillBg =
+    theme === "dark"
+      ? "rgba(255,255,255,0.11)"
+      : theme === "sepia"
+        ? "rgba(62,48,32,0.09)"
+        : "rgba(0,0,0,0.06)";
+
+  const renderSegmentContent = (
+    seg: VerseSegment,
+    book: number,
+    chapter: number,
+    hasNote: boolean,
+    showNoteDot: boolean
+  ) => {
+    const noteMark =
+      hasNote && showNoteDot ? (
         <>
           <Text
+            suppressHighlighting
+            onPress={() => handleNoteIndicatorPress(book, chapter, seg.v)}
             style={{
-              fontSize: 30 + numericSize,
-              color: textColor,
+              color: accentColor,
+              backgroundColor: notePillBg,
+              fontFamily: uiFont,
+              fontSize: Math.max(11, Math.round(0.58 * numericSize)),
+              fontWeight: "600",
+              letterSpacing: 0.2,
             }}
           >
-            {`${seg.c}`}
+            {"\u00A0Note\u00A0"}
           </Text>
-          {" "}
+          {"\u00A0"}
         </>
-      ) : seg.n ? (
-        <Text
-          style={{
-            color: accentColor,
-            fontSize: Math.round(0.68 * numericSize),
-            fontWeight: "600",
-          }}
-        >
-          {`${seg.v}\u00A0`}
-        </Text>
-      ) : null}
-      {seg.t}
-    </>
-  );
+      ) : null;
+
+    return (
+      <>
+        {seg.c !== undefined ? (
+          <>
+            <Text
+              style={{
+                fontSize: 26 + numericSize,
+                lineHeight: Math.round((26 + numericSize) * 1.05),
+                fontFamily: scriptureFont,
+                color: textColor,
+              }}
+            >
+              {`${seg.c}`}
+            </Text>
+            {" "}
+            {noteMark}
+          </>
+        ) : seg.n ? (
+          <>
+            <Text
+              style={{
+                color: accentColor,
+                fontFamily: uiFont,
+                fontSize: Math.round(0.66 * numericSize),
+                fontWeight: "600",
+                opacity: 0.85,
+              }}
+            >
+              {`${seg.v}\u00A0`}
+            </Text>
+            {noteMark}
+          </>
+        ) : (
+          noteMark
+        )}
+        {seg.t}
+      </>
+    );
+  };
 
   const renderContentBlock = (item: ParsedBlockRow) => {
     const segments = item.segments;
@@ -591,7 +1072,6 @@ export default function BibleReader({
       item.kind === "qr" ||
       item.kind === "mr";
 
-    // Block-level spacing and indentation by USJ paragraph/poetry marker
     let blockStyle: ViewStyle = styles.proseParagraph;
     if (item.kind === "pmo") {
       blockStyle = styles.indentedProseParagraph;
@@ -617,16 +1097,11 @@ export default function BibleReader({
         : styles.proseSectionBreak
       : undefined;
 
-    // Omit lineHeight on paragraphs with a large chapter drop-cap so Android's CustomLineHeightSpan
-    // never clips the top of tall chapter digits (e.g. "42").
     const baseTextStyle = {
+      fontFamily: scriptureFont,
       fontSize:
         item.kind === "mr" ? Math.round(numericSize * 0.9) : numericSize,
-      lineHeight: hasDropCap
-        ? undefined
-        : isPoetry
-          ? poetryLineHeight
-          : proseLineHeight,
+      lineHeight: isPoetry ? poetryLineHeight : proseLineHeight,
       color: textColor,
       textAlign:
         item.kind === "pc"
@@ -644,8 +1119,10 @@ export default function BibleReader({
     if (!isMultiVerse) {
       const singleVerse = segments[0].v;
       const singleKey = makeVerseKey(item.book, item.chapter, singleVerse);
-      const isHighlighted =
-        singleKey === arrivalVerseKey || singleKey === selectedVerseKey;
+      const savedHighlight = highlightsByKey[singleKey];
+      const hasNote = hasNoteStartingAt(item.book, item.chapter, singleVerse);
+      const isSelected = selectedKeySet.has(singleKey);
+      const isArrived = singleKey === arrivalVerseKey;
 
       const needsExtraHighlightPad =
         item.kind === "p" ||
@@ -653,40 +1130,75 @@ export default function BibleReader({
         item.kind === "qr" ||
         (item.kind === "q1" && hasDropCap);
 
+      const inlineFill = savedHighlight
+        ? highlightColors[theme][savedHighlight.color].fill
+        : undefined;
+
+      const showBlockFrame = isSelected || isArrived;
+
       return (
         <Pressable
           delayLongPress={260}
-          onPress={selectedVerse ? dismissSelection : undefined}
-          onLongPress={() =>
-            handleSelectVerse(item.book, item.chapter, singleVerse)
+          onPress={
+            isWeb || isSelecting
+              ? () => toggleVerseInSelection(item.book, item.chapter, singleVerse)
+              : undefined
+          }
+          onLongPress={
+            isWeb
+              ? undefined
+              : () => toggleVerseInSelection(item.book, item.chapter, singleVerse)
           }
           style={[
             blockStyle,
             stanzaTopStyle,
             hasDropCap && styles.dropCapPadding,
-            isHighlighted && [
+            showBlockFrame && [
               styles.highlightedBlock,
               needsExtraHighlightPad && styles.highlightedBlockExtraPad,
               {
-                backgroundColor: blockHighlightBg,
+                backgroundColor: savedHighlight
+                  ? "transparent"
+                  : blockHighlightBg,
                 borderLeftColor: accentBorder,
               },
             ],
           ]}
         >
           <Text style={baseTextStyle}>
-            {segments.map((seg, idx) => (
-              <React.Fragment key={idx}>
-                {idx > 0 ? " " : null}
-                {renderSegmentContent(seg)}
-              </React.Fragment>
-            ))}
+            {segments.map((seg, idx) => {
+              const showNoteDot =
+                seg.c !== undefined ||
+                Boolean(seg.n) ||
+                (idx === 0 && singleVerse === 1 && seg.c === undefined && !isPoetry);
+              return (
+                <React.Fragment key={idx}>
+                  {idx > 0 ? " " : null}
+                  <Text
+                    style={[
+                      inlineFill ? { backgroundColor: inlineFill } : undefined,
+                      isSelected
+                        ? { textDecorationLine: "underline" }
+                        : undefined,
+                    ]}
+                  >
+                    {renderSegmentContent(
+                      seg,
+                      item.book,
+                      item.chapter,
+                      hasNote,
+                      showNoteDot
+                    )}
+                  </Text>
+                </React.Fragment>
+              );
+            })}
           </Text>
         </Pressable>
       );
     }
 
-    // Multi-verse flowing paragraph: each verse span is individually long-pressable and inline-highlightable
+    // Multi-verse flowing paragraph: each verse span is individually selectable, highlightable, and note-marked
     return (
       <View
         style={[
@@ -698,25 +1210,50 @@ export default function BibleReader({
         <Text style={baseTextStyle}>
           {segments.map((seg, idx) => {
             const segKey = makeVerseKey(item.book, item.chapter, seg.v);
-            const isInlineHighlighted =
-              segKey === arrivalVerseKey || segKey === selectedVerseKey;
+            const savedHighlight = highlightsByKey[segKey];
+            const hasNote = hasNoteStartingAt(item.book, item.chapter, seg.v);
+            const isSelected = selectedKeySet.has(segKey);
+            const isArrived = segKey === arrivalVerseKey;
+            const showNoteDot =
+              seg.c !== undefined ||
+              Boolean(seg.n) ||
+              (idx === 0 && seg.v === 1 && seg.c === undefined);
+
+            const bg = savedHighlight
+              ? highlightColors[theme][savedHighlight.color].fill
+              : isSelected || isArrived
+                ? inlineHighlightBg
+                : undefined;
 
             return (
               <React.Fragment key={idx}>
                 {idx > 0 ? " " : null}
                 <Text
                   suppressHighlighting
-                  onPress={selectedVerse ? dismissSelection : undefined}
-                  onLongPress={() =>
-                    handleSelectVerse(item.book, item.chapter, seg.v)
-                  }
-                  style={
-                    isInlineHighlighted
-                      ? { backgroundColor: inlineHighlightBg }
+                  onPress={
+                    isWeb || isSelecting
+                      ? () => toggleVerseInSelection(item.book, item.chapter, seg.v)
                       : undefined
                   }
+                  onLongPress={
+                    isWeb
+                      ? undefined
+                      : () => toggleVerseInSelection(item.book, item.chapter, seg.v)
+                  }
+                  style={[
+                    bg ? { backgroundColor: bg } : undefined,
+                    isSelected
+                      ? { textDecorationLine: "underline" }
+                      : undefined,
+                  ]}
                 >
-                  {renderSegmentContent(seg)}
+                  {renderSegmentContent(
+                    seg,
+                    item.book,
+                    item.chapter,
+                    hasNote,
+                    showNoteDot
+                  )}
                 </Text>
               </React.Fragment>
             );
@@ -726,61 +1263,289 @@ export default function BibleReader({
     );
   };
 
+  const selectedCitation = isSelecting
+    ? formatMultiVerseCitation(selectedRefs)
+    : "";
+
+  const primaryNote = overlappingNotes[0];
+
+  const listExtraData = useMemo(
+    () => ({
+      theme,
+      color,
+      textSize,
+      fontFamily,
+      isDesktop,
+      hasCustomTabName,
+      arrivalVerseKey,
+      selectedKeysSignature,
+      studyRevision,
+    }),
+    [
+      theme,
+      color,
+      textSize,
+      fontFamily,
+      isDesktop,
+      hasCustomTabName,
+      arrivalVerseKey,
+      selectedKeysSignature,
+      studyRevision,
+    ]
+  );
+
+  const prevChapterRef = useMemo(
+    () => getAdjacentChapterRef(targetRef.book, targetRef.chapter, -1),
+    [targetRef.book, targetRef.chapter]
+  );
+  const nextChapterRef = useMemo(
+    () => getAdjacentChapterRef(targetRef.book, targetRef.chapter, 1),
+    [targetRef.book, targetRef.chapter]
+  );
+
+  const translationMeta = TRANSLATIONS[translation];
+
+  const renderChapterNavRow = (compactTop = false) => (
+    <View style={[styles.chapterNavRow, compactTop && styles.chapterNavRowTop]}>
+      {prevChapterRef ? (
+        <Pressable
+          onPress={() => {
+            triggerLightHaptic();
+            onNavigateChapter(tabIndex, prevChapterRef);
+          }}
+          style={({ pressed }) => [
+            styles.chapterNavBtn,
+            compactTop && styles.chapterNavBtnCompact,
+            {
+              backgroundColor: ui.surface,
+              borderColor: ui.border,
+              opacity: pressed ? 0.72 : 1,
+            },
+          ]}
+        >
+          <Text
+            style={[
+              styles.chapterNavLabel,
+              compactTop && styles.chapterNavLabelCompact,
+              { color: accentColor },
+            ]}
+            numberOfLines={1}
+          >
+            ← {formatChapterLabel(prevChapterRef.book, prevChapterRef.chapter)}
+          </Text>
+        </Pressable>
+      ) : (
+        <View style={styles.chapterNavSpacer} />
+      )}
+
+      {nextChapterRef ? (
+        <Pressable
+          onPress={() => {
+            triggerLightHaptic();
+            onNavigateChapter(tabIndex, nextChapterRef);
+          }}
+          style={({ pressed }) => [
+            styles.chapterNavBtn,
+            styles.chapterNavBtnRight,
+            compactTop && styles.chapterNavBtnCompact,
+            {
+              backgroundColor: ui.surface,
+              borderColor: ui.border,
+              opacity: pressed ? 0.72 : 1,
+            },
+          ]}
+        >
+          <Text
+            style={[
+              styles.chapterNavLabel,
+              compactTop && styles.chapterNavLabelCompact,
+              { color: accentColor },
+            ]}
+            numberOfLines={1}
+          >
+            {formatChapterLabel(nextChapterRef.book, nextChapterRef.chapter)} →
+          </Text>
+        </Pressable>
+      ) : (
+        <View style={styles.chapterNavSpacer} />
+      )}
+    </View>
+  );
+
+  const renderChapterFooter = () => {
+    const chapterFootnotes = isApi
+      ? (apiChapter?.footnotes ?? [])
+      : localFootnotes;
+    const copyrightText =
+      (isApi ? apiChapter?.copyright : null) || translationMeta.copyrightNotice;
+    const publisherUrl = translationMeta.publisherUrl;
+    const publisherLabel = translationMeta.publisherLinkLabel || publisherUrl;
+
+    return (
+      <View
+        style={[
+          styles.apiFooterWrap,
+          { paddingBottom: Math.max(88, bottomInset + 64) },
+        ]}
+      >
+        {/* Previous / Next Chapter Navigation */}
+        {renderChapterNavRow(false)}
+
+        {/* Chapter Footnotes (for both offline BSB/KJV/WEB and online NIV/NLT/NASB) */}
+        {chapterFootnotes.length > 0 ? (
+          <View
+            style={[
+              styles.apiFootnotesCard,
+              { backgroundColor: ui.surface, borderColor: ui.border },
+            ]}
+          >
+            <Text style={[styles.apiFootnotesHeading, { color: ui.muted }]}>
+              FOOTNOTES
+            </Text>
+            {chapterFootnotes.map((fn, i) => (
+              <Text
+                key={`${fn.verse}-${i}`}
+                style={[styles.apiFootnoteLine, { color: ui.text }]}
+              >
+                <Text style={{ fontWeight: "700", color: accentColor }}>
+                  {`v.${fn.verse} `}
+                </Text>
+                {fn.text}
+              </Text>
+            ))}
+          </View>
+        ) : null}
+
+        {/* Publisher Copyright & Required Links (online copyrighted translations) */}
+        {isApi ? (
+          <View
+            style={[
+              styles.apiAttributionCard,
+              { borderTopColor: ui.border },
+            ]}
+          >
+            <Text style={[styles.apiCopyrightText, { color: ui.muted }]}>
+              {copyrightText}
+            </Text>
+            <View style={styles.apiLinkRow}>
+              {publisherUrl ? (
+                <Pressable
+                  onPress={() => Linking.openURL(publisherUrl).catch(() => {})}
+                  hitSlop={6}
+                >
+                  <Text
+                    style={[styles.apiAttributionLink, { color: accentColor }]}
+                  >
+                    {publisherLabel} ↗
+                  </Text>
+                </Pressable>
+              ) : null}
+              <Text style={[styles.apiLinkDot, { color: ui.muted }]}>·</Text>
+              <Pressable
+                onPress={() =>
+                  Linking.openURL(API_BIBLE_ATTRIBUTION_URL).catch(() => {})
+                }
+                hitSlop={6}
+              >
+                <Text
+                  style={[styles.apiAttributionLink, { color: accentColor }]}
+                >
+                  Powered by API.Bible ↗
+                </Text>
+              </Pressable>
+            </View>
+          </View>
+        ) : null}
+      </View>
+    );
+  };
+
   return (
     <View
       style={[
         styles.container,
         { backgroundColor: bgColor },
+        isDesktop && styles.desktopContainer,
         !isActive && styles.hiddenTab,
       ]}
     >
-      <FlashList
-        ref={listRef}
-        data={blocks}
-        keyExtractor={(item) => `${item.id}`}
-        getItemType={(item) => {
-          if (item.kind === "header") return "header";
-          if (hasMultipleDistinctVerses(item.segments)) return "multiVerse";
-          return "singleVerse";
-        }}
-        extraData={{
-          theme,
-          color,
-          textSize,
-          hasCustomTabName,
-          arrivalVerseKey,
-          selectedVerseKey,
-        }}
-        showsVerticalScrollIndicator={false}
-        scrollEventThrottle={32}
-        onScroll={handleScroll}
-        onScrollBeginDrag={() => {
-          if (selectedVerse) {
-            setSelectedVerse(null);
+      {isApi && apiError && blocks.length === 0 ? (
+        <View style={styles.stateColumn}>
+          {renderChapterNavRow(true)}
+          <View style={styles.webLoadingWrap}>
+            <Text style={[styles.apiErrorTitle, { color: textColor }]}>
+              Could not load {translationShortName}
+            </Text>
+            <Text style={[styles.apiErrorBody, { color: ui.muted }]}>
+              {apiError}
+            </Text>
+            <View style={styles.apiErrorActions}>
+              <Pressable
+                onPress={() => setApiRetryTick((t) => t + 1)}
+                style={({ pressed }) => [
+                  styles.apiErrorBtn,
+                  {
+                    borderColor: accentBorder,
+                    backgroundColor: ui.surface,
+                    opacity: pressed ? 0.72 : 1,
+                  },
+                ]}
+              >
+                <Text style={[styles.apiErrorBtnText, { color: accentColor }]}>
+                  Try Again
+                </Text>
+              </Pressable>
+              <Pressable
+                onPress={() => setTranslation("bsb")}
+                style={({ pressed }) => [
+                  styles.apiErrorBtn,
+                  {
+                    borderColor: ui.border,
+                    backgroundColor: ui.surface,
+                    opacity: pressed ? 0.72 : 1,
+                  },
+                ]}
+              >
+                <Text style={[styles.apiErrorBtnText, { color: textColor }]}>
+                  Switch to Offline BSB
+                </Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      ) : (isWeb || isApi) && (apiLoading || blocks.length === 0) ? (
+        <View style={styles.stateColumn}>
+          {renderChapterNavRow(true)}
+          <View style={styles.webLoadingWrap}>
+            <Text style={[styles.webLoadingText, { color: textColor }]}>
+              Loading {formatChapterLabel(targetRef.book, targetRef.chapter)} ({translationShortName})…
+            </Text>
+          </View>
+        </View>
+      ) : (
+        <FlashList
+          ref={listRef}
+          data={blocks}
+          keyExtractor={blockKeyExtractor}
+          getItemType={blockGetItemType}
+          extraData={listExtraData}
+          showsVerticalScrollIndicator={false}
+          scrollEventThrottle={64}
+          onScroll={handleScroll}
+          onLoad={handleListLoad}
+          viewabilityConfigCallbackPairs={viewabilityConfigCallbackPairs.current}
+          ListHeaderComponent={renderChapterNavRow(true)}
+          ListFooterComponent={renderChapterFooter()}
+          renderItem={({ item }) =>
+            item.kind === "header"
+              ? renderHeaderBlock(item)
+              : renderContentBlock(item)
           }
-        }}
-        onLoad={() => {
-          hasLoadedRef.current = true;
-        }}
-        onStartReached={handleStartReached}
-        onStartReachedThreshold={1.5}
-        onEndReached={handleEndReached}
-        onEndReachedThreshold={1.5}
-        viewabilityConfigCallbackPairs={viewabilityConfigCallbackPairs.current}
-        ListFooterComponent={
-          isAtBibleEnd ? (
-            <View style={{ height: Math.max(64, bottomInset + 40) }} />
-          ) : null
-        }
-        renderItem={({ item }) =>
-          item.kind === "header"
-            ? renderHeaderBlock(item)
-            : renderContentBlock(item)
-        }
-      />
+        />
+      )}
 
-      {/* Copied Toast Pill */}
-      {copiedBanner ? (
+      {/* Toast Pill */}
+      {toastBanner ? (
         <View
           pointerEvents="none"
           style={[
@@ -793,34 +1558,36 @@ export default function BibleReader({
           ]}
         >
           <Text style={[styles.toastText, { color: textColor }]}>
-            {copiedBanner}
+            {toastBanner}
           </Text>
         </View>
       ) : null}
 
-      {/* Minimalist Long-Press Verse Action Bar + Translator Footnotes */}
-      {selectedVerse ? (
+      {/* Daily-Driver Verse Action Bar: Highlight Swatches + Note Preview + Footnotes + Actions */}
+      {isSelecting ? (
         <View
           style={[
             styles.actionBar,
+            isDesktop && styles.actionBarDesktop,
             {
               paddingBottom: Math.max(12, bottomInset + 10),
-              backgroundColor: inactiveBg,
+              backgroundColor: ui.surfaceRaised,
+              borderColor: ui.border,
               borderTopColor: accentBorder,
             },
           ]}
         >
+          {/* Header Row */}
           <View style={styles.actionHeaderRow}>
             <View style={styles.actionTitleRow}>
-              <Text style={[styles.actionCitation, { color: accentColor }]}>
-                {formatVerseCitation(
-                  selectedVerse.book,
-                  selectedVerse.chapter,
-                  selectedVerse.verse
-                )}
+              <Text
+                style={[styles.actionCitation, { color: accentColor }]}
+                numberOfLines={1}
+              >
+                {selectedCitation}
               </Text>
               <Text style={[styles.translationBadge, { color: textColor }]}>
-                BSB
+                {translationShortName}
               </Text>
             </View>
             <Pressable
@@ -835,7 +1602,114 @@ export default function BibleReader({
             </Pressable>
           </View>
 
-          {selectedVerse.footnotes ? (
+          {selectedRefs.length === 1 ? (
+            <Text style={[styles.multiSelectHint, { color: textColor }]}>
+              Tap more verses to select a range
+            </Text>
+          ) : null}
+
+          {/* Highlight Swatches Row */}
+          <View style={styles.swatchRow}>
+            {HIGHLIGHT_COLORS.map((swatchKey) => {
+              const entry = highlightColors[theme][swatchKey];
+              const isSelectedSwatch = activeHighlightColor === swatchKey;
+              return (
+                <Pressable
+                  key={swatchKey}
+                  onPress={() => handleApplyHighlight(swatchKey)}
+                  hitSlop={4}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Highlight ${swatchKey}`}
+                  style={[
+                    styles.swatchCircle,
+                    {
+                      backgroundColor: entry.swatch,
+                      borderColor: isSelectedSwatch
+                        ? textColor
+                        : "rgba(0,0,0,0.22)",
+                      borderWidth: isSelectedSwatch ? 2.5 : 1.5,
+                    },
+                  ]}
+                >
+                  {isSelectedSwatch ? (
+                    <Text style={styles.swatchCheck}>✓</Text>
+                  ) : null}
+                </Pressable>
+              );
+            })}
+            {anySelectedHighlighted ? (
+              <Pressable
+                onPress={handleClearHighlight}
+                hitSlop={4}
+                accessibilityRole="button"
+                accessibilityLabel="Clear highlight"
+                style={[
+                  styles.clearSwatchButton,
+                  {
+                    backgroundColor: bgColor,
+                    borderColor:
+                      theme === "dark"
+                        ? "rgba(255,255,255,0.28)"
+                        : "rgba(0,0,0,0.25)",
+                  },
+                ]}
+              >
+                <Text style={[styles.clearSwatchText, { color: textColor }]}>
+                  Clear
+                </Text>
+              </Pressable>
+            ) : null}
+          </View>
+
+          {/* Existing Note Preview Box(es) */}
+          {overlappingNotes.length > 0 ? (
+            <ScrollView
+              style={styles.notesPreviewList}
+              showsVerticalScrollIndicator={false}
+            >
+              {overlappingNotes.map((note) => (
+                <Pressable
+                  key={note.id}
+                  onPress={() => handleOpenNoteForSelection(note)}
+                  style={[
+                    styles.notePreviewCard,
+                    {
+                      backgroundColor: bgColor,
+                      borderLeftColor: accentBorder,
+                    },
+                  ]}
+                >
+                  <View style={styles.notePreviewHeader}>
+                    <Text
+                      style={[styles.notePreviewLabel, { color: accentColor }]}
+                    >
+                      Note •{" "}
+                      {formatVerseRangeCitation(
+                        note.book,
+                        note.chapter,
+                        note.startVerse,
+                        note.endVerse
+                      )}
+                    </Text>
+                    <Text
+                      style={[styles.notePreviewEdit, { color: accentColor }]}
+                    >
+                      Edit
+                    </Text>
+                  </View>
+                  <Text
+                    style={[styles.notePreviewBody, { color: textColor }]}
+                    numberOfLines={3}
+                  >
+                    {note.body}
+                  </Text>
+                </Pressable>
+              ))}
+            </ScrollView>
+          ) : null}
+
+          {/* Translator Footnotes */}
+          {combinedFootnotes ? (
             <ScrollView
               style={[
                 styles.footnoteBox,
@@ -847,18 +1721,27 @@ export default function BibleReader({
               showsVerticalScrollIndicator={false}
             >
               <Text style={[styles.footnoteText, { color: textColor }]}>
-                {selectedVerse.footnotes}
+                {combinedFootnotes}
               </Text>
             </ScrollView>
           ) : null}
 
+          {/* Action Buttons Row */}
           <View style={styles.actionButtonsRow}>
+            <Pressable
+              style={[styles.actionPill, { backgroundColor: bgColor }]}
+              onPress={() => handleOpenNoteForSelection(primaryNote)}
+            >
+              <Text style={[styles.actionPillText, { color: accentColor }]}>
+                {primaryNote ? "Edit Note" : "+ Note"}
+              </Text>
+            </Pressable>
             <Pressable
               style={[styles.actionPill, { backgroundColor: bgColor }]}
               onPress={handleCopySelected}
             >
               <Text style={[styles.actionPillText, { color: textColor }]}>
-                Copy Verse
+                Copy
               </Text>
             </Pressable>
             <Pressable
@@ -872,13 +1755,13 @@ export default function BibleReader({
             <Pressable
               style={[styles.actionPill, { backgroundColor: bgColor }]}
               onPress={() => {
-                const b = selectedVerse.book;
-                setSelectedVerse(null);
+                const b = selectedRefs[0].book;
+                setSelectedRefs([]);
                 openBookOverview(b);
               }}
             >
               <Text style={[styles.actionPillText, { color: textColor }]}>
-                Book Info ↗
+                Info ↗
               </Text>
             </Pressable>
           </View>
@@ -891,7 +1774,25 @@ export default function BibleReader({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    paddingHorizontal: 15,
+    paddingHorizontal: 20,
+  },
+  desktopContainer: {
+    width: "100%",
+    maxWidth: 720,
+    alignSelf: "center",
+    paddingHorizontal: 32,
+  },
+  stateColumn: {
+    flex: 1,
+  },
+  webLoadingWrap: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  webLoadingText: {
+    fontSize: 16,
+    opacity: 0.55,
   },
   hiddenTab: {
     display: "none",
@@ -1044,25 +1945,40 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    paddingTop: 10,
-    paddingHorizontal: 14,
+    paddingTop: 12,
+    paddingHorizontal: 16,
+    borderTopWidth: 2,
+    elevation: 10,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+  },
+  actionBarDesktop: {
+    left: 24,
+    right: 24,
+    bottom: 16,
+    borderRadius: 14,
+    borderWidth: 1,
     borderTopWidth: 2.5,
-    elevation: 8,
   },
   actionHeaderRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 8,
+    marginBottom: 4,
   },
   actionTitleRow: {
+    flex: 1,
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
+    marginRight: 8,
   },
   actionCitation: {
     fontSize: 17,
     fontWeight: "700",
+    flexShrink: 1,
   },
   translationBadge: {
     fontSize: 11,
@@ -1075,8 +1991,74 @@ const styles = StyleSheet.create({
     lineHeight: 24,
     opacity: 0.7,
   },
+  multiSelectHint: {
+    fontSize: 12,
+    opacity: 0.52,
+    marginBottom: 8,
+  },
+  swatchRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    marginTop: 2,
+    marginBottom: 10,
+  },
+  swatchCircle: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  swatchCheck: {
+    fontSize: 15,
+    fontWeight: "800",
+    color: "#111",
+  },
+  clearSwatchButton: {
+    marginLeft: "auto",
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 14,
+    borderWidth: 1,
+  },
+  clearSwatchText: {
+    fontSize: 12,
+    fontWeight: "700",
+    opacity: 0.8,
+  },
+  notesPreviewList: {
+    maxHeight: 115,
+    marginBottom: 8,
+  },
+  notePreviewCard: {
+    borderLeftWidth: 3,
+    borderRadius: 6,
+    paddingVertical: 7,
+    paddingHorizontal: 10,
+    marginBottom: 6,
+  },
+  notePreviewHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 3,
+  },
+  notePreviewLabel: {
+    fontSize: 12,
+    fontWeight: "700",
+  },
+  notePreviewEdit: {
+    fontSize: 12,
+    fontWeight: "700",
+    textDecorationLine: "underline",
+  },
+  notePreviewBody: {
+    fontSize: 14,
+    lineHeight: 19,
+  },
   footnoteBox: {
-    maxHeight: 105,
+    maxHeight: 92,
     borderLeftWidth: 2.5,
     borderRadius: 5,
     paddingVertical: 7,
@@ -1095,12 +2077,121 @@ const styles = StyleSheet.create({
   actionPill: {
     flex: 1,
     paddingVertical: 9,
-    paddingHorizontal: 8,
+    paddingHorizontal: 6,
     borderRadius: 7,
     alignItems: "center",
     justifyContent: "center",
   },
   actionPillText: {
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  apiFooterWrap: {
+    paddingTop: 22,
+    gap: 16,
+  },
+  chapterNavRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 10,
+  },
+  chapterNavRowTop: {
+    paddingTop: 12,
+    paddingBottom: 2,
+  },
+  chapterNavBtn: {
+    flex: 1,
+    paddingVertical: 11,
+    paddingHorizontal: 14,
+    borderRadius: 10,
+    borderWidth: 1,
+    alignItems: "flex-start",
+  },
+  chapterNavBtnCompact: {
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+  },
+  chapterNavBtnRight: {
+    alignItems: "flex-end",
+  },
+  chapterNavSpacer: {
+    flex: 1,
+  },
+  chapterNavLabel: {
+    fontSize: 14.5,
+    fontWeight: "600",
+  },
+  chapterNavLabelCompact: {
+    fontSize: 13.5,
+  },
+  apiFootnotesCard: {
+    borderWidth: 1,
+    borderRadius: 10,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    gap: 6,
+  },
+  apiFootnotesHeading: {
+    fontSize: 11,
+    fontWeight: "700",
+    letterSpacing: 1.1,
+    marginBottom: 2,
+  },
+  apiFootnoteLine: {
+    fontSize: 13.5,
+    lineHeight: 19.5,
+    opacity: 0.88,
+  },
+  apiAttributionCard: {
+    borderTopWidth: StyleSheet.hairlineWidth,
+    paddingTop: 14,
+    gap: 8,
+  },
+  apiCopyrightText: {
+    fontSize: 12,
+    lineHeight: 18,
+  },
+  apiLinkRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    alignItems: "center",
+    gap: 8,
+  },
+  apiAttributionLink: {
+    fontSize: 12.5,
+    fontWeight: "600",
+    textDecorationLine: "underline",
+  },
+  apiLinkDot: {
+    fontSize: 12,
+  },
+  apiErrorTitle: {
+    fontSize: 17,
+    fontWeight: "700",
+    marginBottom: 6,
+    textAlign: "center",
+  },
+  apiErrorBody: {
+    fontSize: 14,
+    lineHeight: 20,
+    textAlign: "center",
+    maxWidth: 360,
+    marginBottom: 16,
+  },
+  apiErrorActions: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "center",
+    gap: 10,
+  },
+  apiErrorBtn: {
+    paddingHorizontal: 14,
+    paddingVertical: 9,
+    borderRadius: 9,
+    borderWidth: 1.25,
+  },
+  apiErrorBtnText: {
     fontSize: 14,
     fontWeight: "600",
   },

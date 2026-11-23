@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <!-- Original Bible Tabs sky-blue background -->
+  <rect width="1024" height="1024" fill="#E2F5FF"/>
+
+  <!-- Two sleek, well-proportioned top browser tabs -->
+  <rect x="256" y="250" width="218" height="154" rx="34" fill="#0A58CA"/>
+  <rect x="528" y="270" width="218" height="136" rx="34" fill="#60A5FA"/>
+
+  <!-- Bold open Bible silhouette in original cobalt -->
+  <path d="M512 398 C452 358 336 346 218 358 Q190 362 190 390 L190 730 Q190 758 218 754 C336 740 446 752 512 796 C578 752 688 740 806 754 Q834 758 834 730 L834 390 Q834 362 806 358 C688 346 572 358 512 398 Z" fill="#0A58CA"/>
+
+  <!-- Crisp white open pages -->
+  <path d="M490 436 C436 404 338 394 238 404 L238 704 C338 694 436 704 490 736 Z" fill="#FFFFFF"/>
+  <path d="M534 436 C588 404 686 394 786 404 L786 704 C686 694 588 704 534 736 Z" fill="#FFFFFF"/>
+
+  <!-- Minimal cross on left page -->
+  <rect x="348" y="478" width="32" height="154" rx="10" fill="#0A58CA"/>
+  <rect x="306" y="522" width="116" height="32" rx="10" fill="#0A58CA"/>
+
+  <!-- Three minimal scripture lines on right page -->
+  <rect x="576" y="494" width="166" height="24" rx="12" fill="#93C5FD"/>
+  <rect x="576" y="544" width="166" height="24" rx="12" fill="#93C5FD"/>
+  <rect x="576" y="594" width="118" height="24" rx="12" fill="#93C5FD"/>
+</svg>

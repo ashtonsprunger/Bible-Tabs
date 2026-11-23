@@ -2,6 +2,70 @@ import type { BibleReference, BookInfo } from "../types";
 
 export const PSALMS_BOOK_INDEX = 18;
 
+export const BOOK_USFM_CODES: readonly string[] = [
+  "GEN", "EXO", "LEV", "NUM", "DEU", "JOS", "JDG", "RUT",
+  "1SA", "2SA", "1KI", "2KI", "1CH", "2CH", "EZR", "NEH",
+  "EST", "JOB", "PSA", "PRO", "ECC", "SNG", "ISA", "JER",
+  "LAM", "EZK", "DAN", "HOS", "JOL", "AMO", "OBA", "JON",
+  "MIC", "NAM", "HAB", "ZEP", "HAG", "ZEC", "MAL", "MAT",
+  "MRK", "LUK", "JHN", "ACT", "ROM", "1CO", "2CO", "GAL",
+  "EPH", "PHP", "COL", "1TH", "2TH", "1TI", "2TI", "TIT",
+  "PHM", "HEB", "JAS", "1PE", "2PE", "1JN", "2JN", "3JN",
+  "JUD", "REV",
+] as const;
+
+export const USFM_CODE_TO_BOOK_INDEX: Readonly<Record<string, number>> =
+  Object.fromEntries(BOOK_USFM_CODES.map((code, idx) => [code, idx]));
+
+export function getBookUsfmCode(bookIndex: number): string {
+  return BOOK_USFM_CODES[bookIndex] ?? "GEN";
+}
+
+export function getChapterUsfmId(bookIndex: number, chapter: number): string {
+  return `${getBookUsfmCode(bookIndex)}.${chapter}`;
+}
+
+export function parseUsfmVerseId(raw: string | undefined | null): BibleReference | null {
+  if (!raw || typeof raw !== "string") return null;
+  const parts = raw.trim().toUpperCase().split(".");
+  if (parts.length < 3) return null;
+  const book = USFM_CODE_TO_BOOK_INDEX[parts[0]];
+  const chapter = Number.parseInt(parts[1], 10);
+  const verse = Number.parseInt(parts[2], 10);
+  if (
+    book === undefined ||
+    !Number.isFinite(chapter) ||
+    chapter < 1 ||
+    !Number.isFinite(verse) ||
+    verse < 1
+  ) {
+    return null;
+  }
+  return { book, chapter, verse };
+}
+
+export function getAdjacentChapterRef(
+  book: number,
+  chapter: number,
+  delta: -1 | 1
+): BibleReference | null {
+  const currentBook = BOOKS[book];
+  if (!currentBook) return null;
+  const nextChapter = chapter + delta;
+  if (nextChapter >= 1 && nextChapter <= currentBook.chapters) {
+    return { book, chapter: nextChapter, verse: 1 };
+  }
+  const nextBook = book + delta;
+  if (nextBook < 0 || nextBook >= BOOKS.length) {
+    return null;
+  }
+  return {
+    book: nextBook,
+    chapter: delta > 0 ? 1 : BOOKS[nextBook].chapters,
+    verse: 1,
+  };
+}
+
 export const BOOKS: readonly BookInfo[] = [
   { index: 0, book: "Genesis", chapters: 50, verses: 1533 },
   { index: 1, book: "Exodus", chapters: 40, verses: 1213 },
@@ -236,6 +300,98 @@ export function formatVerseCitation(
   verse: number
 ): string {
   return `${getChapterBookName(bookIndex)} ${chapter}:${verse}`;
+}
+
+export function makeVerseKey(
+  book: number,
+  chapter: number,
+  verse: number
+): string {
+  return `${book},${chapter},${verse}`;
+}
+
+export function compareBibleRefs(a: BibleReference, b: BibleReference): number {
+  return a.book - b.book || a.chapter - b.chapter || a.verse - b.verse;
+}
+
+export function formatVerseRangeCitation(
+  bookIndex: number,
+  chapter: number,
+  startVerse: number,
+  endVerse: number
+): string {
+  if (endVerse <= startVerse) {
+    return formatVerseCitation(bookIndex, chapter, startVerse);
+  }
+  return `${getChapterBookName(bookIndex)} ${chapter}:${startVerse}–${endVerse}`;
+}
+
+/**
+ * Formats an arbitrary set of selected verses cleanly:
+ * - Single verse: "John 3:16"
+ * - Contiguous range in one chapter: "John 3:16–18"
+ * - Non-contiguous in one chapter: "John 3:16, 18–19"
+ * - Cross-chapter in one book: "John 3:36–4:2" (if contiguous) or "John 3:36; 4:2"
+ * - Cross-book: "John 3:16; Romans 8:28"
+ */
+export function formatMultiVerseCitation(verses: BibleReference[]): string {
+  if (verses.length === 0) {
+    return "";
+  }
+  const sorted = [...verses].sort(compareBibleRefs);
+  if (sorted.length === 1) {
+    return formatVerseCitation(sorted[0].book, sorted[0].chapter, sorted[0].verse);
+  }
+
+  // Group by book -> chapter -> sorted unique verse numbers
+  const byChapter = new Map<string, { book: number; chapter: number; nums: number[] }>();
+  for (const ref of sorted) {
+    const key = `${ref.book},${ref.chapter}`;
+    let group = byChapter.get(key);
+    if (!group) {
+      group = { book: ref.book, chapter: ref.chapter, nums: [] };
+      byChapter.set(key, group);
+    }
+    if (group.nums[group.nums.length - 1] !== ref.verse) {
+      group.nums.push(ref.verse);
+    }
+  }
+
+  const formatNumRuns = (nums: number[]): string => {
+    const runs: string[] = [];
+    let start = nums[0];
+    let prev = nums[0];
+    for (let i = 1; i < nums.length; i++) {
+      if (nums[i] === prev + 1) {
+        prev = nums[i];
+      } else {
+        runs.push(start === prev ? `${start}` : `${start}–${prev}`);
+        start = nums[i];
+        prev = nums[i];
+      }
+    }
+    runs.push(start === prev ? `${start}` : `${start}–${prev}`);
+    return runs.join(", ");
+  };
+
+  const groups = [...byChapter.values()];
+  if (groups.length === 1) {
+    const g = groups[0];
+    return `${getChapterBookName(g.book)} ${g.chapter}:${formatNumRuns(g.nums)}`;
+  }
+
+  const parts: string[] = [];
+  let prevBook = -1;
+  for (const g of groups) {
+    const versePart = formatNumRuns(g.nums);
+    if (g.book === prevBook) {
+      parts.push(`${g.chapter}:${versePart}`);
+    } else {
+      parts.push(`${getChapterBookName(g.book)} ${g.chapter}:${versePart}`);
+      prevBook = g.book;
+    }
+  }
+  return parts.join("; ");
 }
 
 export function getGotQuestionsBookUrl(bookIndex: number): string {

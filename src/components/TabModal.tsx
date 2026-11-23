@@ -1,7 +1,7 @@
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { StatusBar } from "expo-status-bar";
 import React, { useEffect, useState } from "react";
-import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
+import { Platform, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { formatChapterLabel, parseReference } from "../constants/books";
 import { colors } from "../constants/colors";
@@ -20,6 +20,23 @@ function SearchIcon({ color }: { color: string }) {
     <View style={styles.searchIconBox}>
       <View style={[styles.searchLens, { borderColor: color }]} />
       <View style={[styles.searchHandle, { backgroundColor: color }]} />
+    </View>
+  );
+}
+
+function NotebookIcon({ color }: { color: string }) {
+  return (
+    <View style={styles.notebookIconBox}>
+      <View style={[styles.notebookCover, { borderColor: color }]}>
+        <View style={[styles.notebookLine, { backgroundColor: color }]} />
+        <View
+          style={[
+            styles.notebookLine,
+            styles.notebookLineShort,
+            { backgroundColor: color },
+          ]}
+        />
+      </View>
     </View>
   );
 }
@@ -96,6 +113,7 @@ export default function TabModal({ navigation }: TabModalScreenProps) {
           paddingTop: insets.top + 8,
           paddingBottom: Math.max(12, insets.bottom + 8),
         },
+        Platform.OS === "web" && styles.webContainer,
       ]}
     >
       <StatusBar style={theme === "dark" ? "light" : "dark"} />
@@ -115,6 +133,19 @@ export default function TabModal({ navigation }: TabModalScreenProps) {
             selectTextOnFocus
           />
           <View style={styles.headerActions}>
+            <Pressable
+              onPress={() => {
+                const trimmed = draftName.trim();
+                renameTab(currentTab, trimmed);
+                flushTabs();
+                navigation.navigate("Notebook");
+              }}
+              hitSlop={8}
+              accessibilityRole="button"
+              accessibilityLabel="Notebook (Highlights and Notes)"
+            >
+              <NotebookIcon color={textColor} />
+            </Pressable>
             <Pressable
               onPress={handleOpenSearch}
               hitSlop={8}
@@ -189,6 +220,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     flexDirection: "column",
   },
+  webContainer: {
+    width: "100%",
+    maxWidth: 740,
+    alignSelf: "center",
+  },
   headerBlock: {
     marginBottom: 15,
   },
@@ -200,8 +236,9 @@ const styles = StyleSheet.create({
   },
   titleInput: {
     flex: 1,
-    fontSize: 35,
-    marginRight: 12,
+    minWidth: 0,
+    fontSize: 32,
+    marginRight: 10,
     paddingVertical: 0,
   },
   currentPassageHint: {
@@ -212,7 +249,8 @@ const styles = StyleSheet.create({
   headerActions: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 14,
+    flexShrink: 0,
+    gap: 12,
   },
   searchIconBox: {
     width: 30,
@@ -236,6 +274,29 @@ const styles = StyleSheet.create({
     left: 17.5,
     top: 20.75,
     transform: [{ rotate: "45deg" }],
+  },
+  notebookIconBox: {
+    width: 30,
+    height: 30,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  notebookCover: {
+    width: 20,
+    height: 23,
+    borderWidth: 2.3,
+    borderRadius: 3,
+    paddingHorizontal: 3,
+    paddingTop: 5,
+    gap: 3.5,
+  },
+  notebookLine: {
+    height: 2,
+    width: "100%",
+    borderRadius: 1,
+  },
+  notebookLineShort: {
+    width: "68%",
   },
   gearIcon: {
     fontSize: 30,

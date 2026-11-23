@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <!-- Direct nod to original Bible Tabs sky-blue background (#E2F5FF) -->
+  <rect width="1024" height="1024" fill="#E2F5FF"/>
+
+  <!-- Two simple browser tabs peeking cleanly behind the open book -->
+  <rect x="276" y="218" width="206" height="144" rx="34" fill="#0A58CA"/>
+  <rect x="520" y="236" width="206" height="126" rx="34" fill="#60A5FA"/>
+
+  <!-- Ultra-clean open Bible silhouette in bold original cobalt (#0A58CA) -->
+  <path d="M512 372 C446 330 332 318 206 336 C190 338 178 352 178 368 L178 730 C178 748 194 762 212 760 C332 742 442 754 512 796 C582 754 692 742 812 760 C830 762 846 748 846 730 L846 368 C846 352 834 338 818 336 C692 318 578 330 512 372 Z" fill="#0A58CA"/>
+
+  <!-- Clean white inner open pages -->
+  <path d="M490 410 C432 378 336 368 232 382 L232 706 C336 692 432 702 490 734 Z" fill="#FFFFFF"/>
+  <path d="M534 410 C592 378 688 368 792 382 L792 706 C688 692 592 702 534 734 Z" fill="#FFFFFF"/>
+</svg>

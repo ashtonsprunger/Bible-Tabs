@@ -1,2 +1,6 @@
 .vercel
 .env*
+_expo/
+assets/
+read.html
+favicon.ico

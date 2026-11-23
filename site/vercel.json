@@ -1,16 +1,32 @@
 {
   "rewrites": [
+    { "source": "/assets/node_modules/:path*", "destination": "/assets/vendor/:path*" },
+    { "source": "/read", "destination": "/read.html" },
+    { "source": "/app", "destination": "/read.html" },
     { "source": "/privacy", "destination": "/privacy-policy.html" },
     { "source": "/privacy-policy", "destination": "/privacy-policy.html" },
     { "source": "/delete-data", "destination": "/delete-data.html" },
-    { "source": "/support", "destination": "/support.html" }
+    { "source": "/support", "destination": "/support.html" },
+    { "source": "/publishers", "destination": "/publishers.html" },
+    { "source": "/licensing", "destination": "/publishers.html" }
   ],
   "headers": [
     {
-      "source": "/app-ads.txt",
+      "source": "/_expo/(.*)",
       "headers": [
-        { "key": "Content-Type", "value": "text/plain; charset=utf-8" },
-        { "key": "Cache-Control", "value": "public, max-age=3600" }
+        { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }
+      ]
+    },
+    {
+      "source": "/assets/(.*)",
+      "headers": [
+        { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }
+      ]
+    },
+    {
+      "source": "/(.*)\\.wasm",
+      "headers": [
+        { "key": "Content-Type", "value": "application/wasm" }
       ]
     },
     {

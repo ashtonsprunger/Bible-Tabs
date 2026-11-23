@@ -3,130 +3,85 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Support, FAQ &amp; Scripture Attribution — Bible Tabs | Sprunger Studios</title>
-  <meta name="description" content="Support, quick-start tips, frequently asked questions, and Berean Standard Bible (BSB) attribution for Bible Tabs by Sprunger Studios." />
+  <title>Support &amp; FAQ — Bible Tabs</title>
+  <meta name="description" content="Quick-start tips, frequently asked questions, backup transfer instructions, and Scripture attribution for Bible Tabs." />
   <link rel="icon" type="image/png" href="/icon.png" />
-  <style>
-    body {
-      margin: 0;
-      padding: 40px 20px;
-      background: #080C14;
-      color: #E2E8F0;
-      font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
-      line-height: 1.65;
-    }
-    main {
-      max-width: 720px;
-      margin: 0 auto;
-      background: #131A27;
-      border: 2px solid #26344B;
-      border-radius: 16px;
-      padding: 32px;
-    }
-    h1 { color: #F8FAFC; margin-top: 0; font-size: 28px; }
-    h2 { color: #38BDF8; font-size: 18px; margin-top: 28px; }
-    h3 { color: #F8FAFC; font-size: 15.5px; margin: 18px 0 4px; }
-    p, li { color: #CBD5E1; font-size: 15px; }
-    .meta { color: #94A3B8; font-size: 13px; margin-bottom: 24px; }
-    .card-box {
-      background: #0C121E;
-      border: 1.5px solid #26344B;
-      border-radius: 12px;
-      padding: 18px 22px;
-      margin: 14px 0;
-    }
-    .card-box p:last-child,
-    .card-box ul:last-child { margin-bottom: 0; }
-    .card-box p:first-child,
-    .card-box ul:first-child { margin-top: 0; }
-    blockquote {
-      margin: 12px 0;
-      padding: 10px 14px;
-      border-left: 3px solid #38BDF8;
-      background: rgba(56, 189, 248, 0.06);
-      color: #CBD5E1;
-      font-size: 14px;
-    }
-    code {
-      background: #0C121E;
-      padding: 2px 6px;
-      border-radius: 5px;
-      font-size: 13.5px;
-      color: #E2E8F0;
-    }
-    a { color: #7DD3FC; }
-    @media (max-width: 600px) {
-      body { padding: 18px 12px; }
-      main { padding: 22px 18px; }
-      h1 { font-size: 24px; }
-    }
-  </style>
+  <link rel="stylesheet" href="/style.css" />
 </head>
 <body>
-  <main>
-    <h1>Support &amp; FAQ — Bible Tabs</h1>
-    <div class="meta">App: <strong>Bible Tabs</strong> (v5.1.0 &bull; <code>ashtonsprunger.bibletabs</code>) &bull; Developer: <strong>Sprunger Studios</strong></div>
+  <div class="wrap">
+    <header class="site-header">
+      <a class="brand" href="/">
+        <img src="/icon.png" alt="Bible Tabs" />
+        <span class="brand-name">Bible Tabs</span>
+      </a>
+      <nav class="site-nav" aria-label="Primary">
+        <a href="/read">Web Reader</a>
+        <a href="/publishers">Publishers</a>
+        <a href="/support" aria-current="page">Support</a>
+        <a href="/privacy">Privacy</a>
+      </nav>
+    </header>
 
-    <h2>Quick Tips</h2>
-    <div class="card-box">
+    <main>
+      <h1>Support &amp; FAQ</h1>
+      <p class="meta">Bible Tabs (<code>ashtonsprunger.bibletabs</code>) &middot; Android &amp; Web</p>
+
+      <h2>Quick Tips</h2>
       <ul>
-        <li><strong>Open &amp; switch tabs:</strong> Tap <code>+</code> in the top tab bar to open a new Bible tab, or tap any inactive tab to jump straight to where you left off.</li>
-        <li><strong>Change book, search, rename, or open settings:</strong> Tap the <em>active</em> tab to open the Tab menu—rename your tab, pick any book and chapter, tap the search icon, or open Settings (<code>&#9881;</code>).</li>
-        <li><strong>Quick reference jump:</strong> In Search, type keywords to search every verse offline, or type a passage like <code>Psalm 23</code> or <code>John 3:16</code> for an instant jump card.</li>
-        <li><strong>Copy or share a verse:</strong> Press and hold any verse to open the quick action bar for copying with citation or sharing.</li>
-        <li><strong>Book overviews:</strong> Tap a book title banner to open a study overview of that book.</li>
+        <li><strong>Manage tabs:</strong> Tap <code>+</code> to open a new tab. Tap the currently <em>active</em> tab to rename it, pick a book and chapter, open your Notebook, search, or open Settings.</li>
+        <li><strong>Highlight &amp; take notes:</strong> On mobile, press and hold any verse, then tap additional verses to select a range. On desktop web, simply click verses to select them. Pick a highlight color or tap <strong>+ Note</strong>.</li>
+        <li><strong>Notebook:</strong> Tap the active tab, then tap the Notebook icon in the top right to browse, search, filter by highlight color, or open saved passages in a new tab.</li>
+        <li><strong>Fast search:</strong> Type keywords to search every verse offline, or type a reference like <code>Psalm 23</code> or <code>John 3:16</code> to jump directly. On desktop web, press <code>Ctrl+K</code> or <code>/</code>.</li>
+        <li><strong>Move highlights &amp; notes between devices:</strong> In Settings, tap <strong>Backup &rarr; Export</strong> to save or copy a JSON backup, then tap <strong>Import</strong> on your other device to merge everything cleanly.</li>
       </ul>
-    </div>
 
-    <h2>Frequently Asked Questions</h2>
+      <h2>Frequently Asked Questions</h2>
 
-    <h3>Does Bible Tabs work without an internet connection?</h3>
-    <p>
-      Yes. The entire 66-book Berean Standard Bible (BSB) and full-text search index are bundled locally inside the app, so reading, tabbing, and searching work 100% offline.
-    </p>
-
-    <h3>Which Bible translation does Bible Tabs use?</h3>
-    <p>
-      Bible Tabs (v5.1.0) uses the <strong>Berean Standard Bible (BSB)</strong>, typeset directly from its official USJ formatting with flowing prose paragraphs, indented poetry, section headings, cross-references, Psalm superscriptions, <em>Selah</em>, and translator footnotes.
-    </p>
-
-    <h3>Does Bible Tabs have ads, subscriptions, or user accounts?</h3>
-    <p>
-      No. Bible Tabs is completely free, has zero ads, requires no sign-in, and collects zero personal data. Read our <a href="/privacy-policy.html">Privacy Policy</a> for full details.
-    </p>
-
-    <h3>How do I change the theme, accent color, text size, or screen rotation?</h3>
-    <p>
-      Tap the active tab in the top bar, then tap the gear icon (<code>&#9881;</code>) in the top right to open <strong>Settings</strong>. From there you can switch between Light, Sepia, and Dark themes, choose from 8 accent colors, pick from 5 text sizes, and toggle Portrait vs. Any orientation.
-    </p>
-
-    <h2>Scripture Attribution &amp; License</h2>
-    <div class="card-box">
+      <h3>Does Bible Tabs work without an internet connection?</h3>
       <p>
-        Bible Tabs uses the <strong>Berean Standard Bible (BSB)</strong>, which is dedicated to the public domain worldwide under <strong>CC0 1.0 Universal</strong>.
+        Yes. On Android, all four bundled translations (BSB, KJV, WEB, ASV) and full-text search are stored inside the app and work 100% offline. In the Web Reader, each translation caches locally in your browser the first time you open it.
       </p>
-      <blockquote>
-        "The Holy Bible, Berean Standard Bible, BSB is produced in cooperation with Bible Hub, Discovery Bible, OpenBible.com, and the Berean Bible Translation Committee. This text of God's Word has been dedicated to the public domain."
-      </blockquote>
+
+      <h3>Which translations are included?</h3>
       <p>
-        Official BSB Licensing &amp; Downloads:
-        <a href="https://berean.bible/licensing.htm" target="_blank" rel="noopener">berean.bible/licensing.htm</a>
+        Bible Tabs currently includes four complete Public Domain translations: <strong>Berean Standard Bible (BSB)</strong>, <strong>King James Version (KJV)</strong>, <strong>World English Bible (WEB)</strong>, and <strong>American Standard Version (ASV, 1901)</strong>. Switch translations globally anytime in Settings—your tabs, highlights, and notes automatically stay in place.
       </p>
-    </div>
 
-    <h2>Contact Support</h2>
-    <p>
-      Found a bug, have a feature idea, or need help with Bible Tabs? Email <strong>Sprunger Studios</strong> at
-      <a href="mailto:support@sprungerstudios.app?subject=Bible%20Tabs%20Support">support@sprungerstudios.app</a>
-      and include your device model and app version (shown at the bottom of Settings).
-    </p>
+      <h3>Will my highlights and notes be backed up if I get a new Android phone?</h3>
+      <p>
+        Yes. Bible Tabs stores highlights and notes in a dedicated lightweight database that is included in Android's built-in Google Backup (while excluding large Bible files so backups remain small and reliable). For extra peace of mind—or moving data between Android and the Web Reader—you can also export and import a <code>.json</code> backup anytime in Settings.
+      </p>
 
-    <p style="margin-top: 26px; font-size: 14px;">
-      <a href="/">&larr; Bible Tabs Home</a> &bull;
-      <a href="/privacy-policy.html">Privacy Policy</a> &bull;
-      <a href="/delete-data.html">Data &amp; Deletion</a> &bull;
-      <a href="https://sprungerstudios.app">Sprunger Studios</a>
-    </p>
-  </main>
+      <h3>Does Bible Tabs have ads, subscriptions, or accounts?</h3>
+      <p>
+        No. Bible Tabs is completely free, ad-free, requires no sign-in, and collects no personal data.
+      </p>
+
+      <h2>Scripture Attribution</h2>
+      <ul>
+        <li><strong>Berean Standard Bible (BSB):</strong> Public Domain (CC0 1.0 Universal). <a href="https://berean.bible/licensing.htm" target="_blank" rel="noopener">berean.bible/licensing.htm</a></li>
+        <li><strong>King James Version (KJV):</strong> 1769 Oxford Standard text. Public Domain. <a href="https://ebible.org/eng-kjv2006/" target="_blank" rel="noopener">ebible.org/eng-kjv2006</a></li>
+        <li><strong>World English Bible (WEB):</strong> Public Domain (no copyright). <a href="https://worldenglish.bible/" target="_blank" rel="noopener">worldenglish.bible</a></li>
+        <li><strong>American Standard Version (ASV, 1901):</strong> Public Domain. <a href="https://ebible.org/eng-asv/" target="_blank" rel="noopener">ebible.org/eng-asv</a></li>
+      </ul>
+
+      <h2>Contact</h2>
+      <p>
+        Found a bug, have feedback, or need help? Email Ashton Sprunger at <a href="mailto:ashton.sprunger@gmail.com?subject=Bible%20Tabs%20Support">ashton.sprunger@gmail.com</a>.
+      </p>
+    </main>
+
+    <footer class="site-footer">
+      <div>Ashton Sprunger &middot; Sprunger Studios</div>
+      <div class="footer-links">
+        <a href="/">Home</a>
+        <a href="/read">Web Reader</a>
+        <a href="/publishers">Publishers</a>
+        <a href="/privacy">Privacy</a>
+        <a href="/delete-data">Delete Data</a>
+      </div>
+    </footer>
+  </div>
 </body>
 </html>

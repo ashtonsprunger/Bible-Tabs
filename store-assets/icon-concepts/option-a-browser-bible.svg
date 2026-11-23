@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <defs>
+    <linearGradient id="bgA" x1="0" y1="0" x2="0.8" y2="1">
+      <stop offset="0%" stop-color="#2563EB"/>
+      <stop offset="100%" stop-color="#1E3A8A"/>
+    </linearGradient>
+    <linearGradient id="cardA" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#FFFFFF"/>
+      <stop offset="100%" stop-color="#F6F3EC"/>
+    </linearGradient>
+    <filter id="shadowA" x="-15%" y="-15%" width="130%" height="135%">
+      <feDropShadow dx="0" dy="18" stdDeviation="24" flood-color="#0B1942" flood-opacity="0.34"/>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1024" height="1024" fill="url(#bgA)"/>
+
+  <!-- Subtle inactive browser tabs peeking behind -->
+  <path d="M474 282 C474 252 498 228 528 228 L664 228 C694 228 718 252 718 282 L718 336 L474 336 Z" fill="#93C5FD" opacity="0.48"/>
+  <path d="M680 282 C680 256 700 236 726 236 L814 236 C838 236 856 256 856 282 L856 336 L680 336 Z" fill="#93C5FD" opacity="0.26"/>
+
+  <!-- Main active browser-tab card -->
+  <g filter="url(#shadowA)">
+    <path d="M168 332 L168 274 C168 242 194 216 226 216 L434 216 C466 216 492 242 492 274 L492 312 L808 312 C838 312 862 336 862 366 L862 746 C862 778 836 804 804 804 L226 804 C194 804 168 778 168 746 Z" fill="url(#cardA)"/>
+    <!-- Active tab top accent bar -->
+    <rect x="216" y="216" width="228" height="18" rx="9" fill="#60A5FA"/>
+  </g>
+
+  <!-- Crisp geometric open Bible inside the card -->
+  <g transform="translate(0, 18)">
+    <!-- Left page -->
+    <path d="M512 430 C454 398 370 388 278 402 L278 656 C366 644 452 652 512 686 Z" fill="#EFF6FF" stroke="#1D4ED8" stroke-width="20" stroke-linejoin="round"/>
+    <!-- Right page -->
+    <path d="M512 430 C570 398 654 388 746 402 L746 656 C658 644 572 652 512 686 Z" fill="#FFFFFF" stroke="#1D4ED8" stroke-width="20" stroke-linejoin="round"/>
+    <!-- Subtle page lines -->
+    <line x1="328" y1="474" x2="458" y2="484" stroke="#93C5FD" stroke-width="14" stroke-linecap="round"/>
+    <line x1="328" y1="530" x2="458" y2="540" stroke="#93C5FD" stroke-width="14" stroke-linecap="round"/>
+    <line x1="328" y1="586" x2="432" y2="594" stroke="#93C5FD" stroke-width="14" stroke-linecap="round"/>
+    <line x1="566" y1="484" x2="696" y2="474" stroke="#93C5FD" stroke-width="14" stroke-linecap="round"/>
+    <line x1="566" y1="540" x2="696" y2="530" stroke="#93C5FD" stroke-width="14" stroke-linecap="round"/>
+    <line x1="566" y1="594" x2="670" y2="586" stroke="#93C5FD" stroke-width="14" stroke-linecap="round"/>
+    <!-- Bookmark ribbon -->
+    <path d="M622 394 L622 504 L650 480 L678 504 L678 394 Z" fill="#F59E0B"/>
+  </g>
+</svg>

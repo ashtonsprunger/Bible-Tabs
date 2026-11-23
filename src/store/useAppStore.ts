@@ -4,12 +4,15 @@ import { Platform } from "react-native";
 import { create } from "zustand";
 import { ACCENT_COLORS, TEXT_SIZES } from "../constants/colors";
 import { formatReference, parseReference } from "../constants/books";
+import { parseTranslationId } from "../constants/translations";
 import type {
   AccentColorName,
   BibleReference,
+  FontFamilyOption,
   TabItem,
   TextSizeOption,
   ThemeName,
+  TranslationId,
 } from "../types";
 
 const MIGRATION_FLAG_KEY = "migrated_from_async_storage_v1";
@@ -144,6 +147,13 @@ function parseTextSize(raw: string | null): TextSizeOption {
   return "18";
 }
 
+function parseFontFamily(raw: string | null): FontFamilyOption {
+  if (raw === "serif" || raw === "sans") {
+    return raw;
+  }
+  return "serif";
+}
+
 function clampTabIndex(raw: string | null, tabsLength: number): number {
   if (tabsLength === 0) {
     return 0;
@@ -182,7 +192,9 @@ interface HydratedSnapshot {
   theme: ThemeName;
   color: AccentColorName;
   textSize: TextSizeOption;
+  fontFamily: FontFamilyOption;
   allowRotation: boolean;
+  translation: TranslationId;
 }
 
 function loadInitialSyncSnapshot(): HydratedSnapshot {
@@ -195,7 +207,9 @@ function loadInitialSyncSnapshot(): HydratedSnapshot {
       theme: "light",
       color: "blue",
       textSize: "18",
+      fontFamily: "serif",
       allowRotation: false,
+      translation: "bsb",
     };
   }
 
@@ -204,7 +218,9 @@ function loadInitialSyncSnapshot(): HydratedSnapshot {
   const theme = parseTheme(kvGetSync("theme"));
   const color = parseColor(kvGetSync("color"));
   const textSize = parseTextSize(kvGetSync("textSize"));
+  const fontFamily = parseFontFamily(kvGetSync("fontFamily"));
   const allowRotation = kvGetSync("rotate") === "true";
+  const translation = parseTranslationId(kvGetSync("translation"));
 
   return {
     isHydrated: true,
@@ -213,7 +229,9 @@ function loadInitialSyncSnapshot(): HydratedSnapshot {
     theme,
     color,
     textSize,
+    fontFamily,
     allowRotation,
+    translation,
   };
 }
 
@@ -222,9 +240,12 @@ export interface AppState extends HydratedSnapshot {
   hydrateFromLegacyIfNeeded: () => Promise<void>;
   setCurrentTab: (index: number) => void;
   addTab: () => void;
+  addTabAtReference: (ref: BibleReference, highlight?: boolean) => void;
   removeTab: (index: number) => void;
+  moveTab: (fromIndex: number, toIndex: number) => void;
   renameTab: (index: number, name: string, trimForStorage?: boolean) => void;
   flushTabs: () => void;
+  getSerializableTabs: () => Array<{ id: string; name: string; reference: string }>;
   jumpTabToReference: (
     index: number,
     ref: BibleReference,
@@ -235,7 +256,9 @@ export interface AppState extends HydratedSnapshot {
   setTheme: (theme: ThemeName) => void;
   setColor: (color: AccentColorName) => void;
   setTextSize: (size: TextSizeOption) => void;
+  setFontFamily: (font: FontFamilyOption) => void;
   toggleRotation: () => void;
+  setTranslation: (translation: TranslationId) => void;
   setShowSearch: (show: boolean) => void;
   toggleShowSearch: () => void;
 }
@@ -269,7 +292,9 @@ export const useAppStore = create<AppState>((set, get) => ({
       const theme = parseTheme(legacyMap.get("theme") ?? null);
       const color = parseColor(legacyMap.get("color") ?? null);
       const textSize = parseTextSize(legacyMap.get("textSize") ?? null);
+      const fontFamily = parseFontFamily(kvGetSync("fontFamily"));
       const allowRotation = legacyMap.get("rotate") === "true";
+      const translation = parseTranslationId(kvGetSync("translation"));
 
       // Ensure defaults are persisted cleanly in synchronous KV store
       kvSetSync("tabs", serializeTabs(tabs));
@@ -277,7 +302,9 @@ export const useAppStore = create<AppState>((set, get) => ({
       kvSetSync("theme", theme);
       kvSetSync("color", color);
       kvSetSync("textSize", textSize);
+      kvSetSync("fontFamily", fontFamily);
       kvSetSync("rotate", allowRotation ? "true" : "false");
+      kvSetSync("translation", translation);
       kvSetSync(MIGRATION_FLAG_KEY, "true");
 
       set({
@@ -287,7 +314,9 @@ export const useAppStore = create<AppState>((set, get) => ({
         theme,
         color,
         textSize,
+        fontFamily,
         allowRotation,
+        translation,
       });
     } catch (err) {
       console.warn("Legacy AsyncStorage migration fallback:", err);
@@ -320,6 +349,24 @@ export const useAppStore = create<AppState>((set, get) => ({
     set({ tabs: nextTabs, currentTab: nextIndex });
   },
 
+  addTabAtReference: (ref, highlight = true) => {
+    const syncedTabs = withLatestRefs(get().tabs);
+    const formatted = formatReference(ref);
+    const newTab: RuntimeTab = {
+      id: makeTabId(),
+      name: "",
+      reference: formatted,
+      navVersion: 0,
+      highlightRef: highlight ? formatted : null,
+    };
+    latestReferenceByTabId.set(newTab.id, formatted);
+    const nextTabs = [...syncedTabs, newTab];
+    const nextIndex = nextTabs.length - 1;
+    flushTabsToStorage(nextTabs);
+    kvSetSync("lastTab", String(nextIndex));
+    set({ tabs: nextTabs, currentTab: nextIndex });
+  },
+
   removeTab: (index) => {
     const syncedTabs = withLatestRefs(get().tabs);
     const removed = syncedTabs[index];
@@ -329,6 +376,36 @@ export const useAppStore = create<AppState>((set, get) => ({
     const nextTabs = syncedTabs.filter((_, i) => i !== index);
     const nextCurrent =
       nextTabs.length === 0 ? 0 : Math.min(index, nextTabs.length - 1);
+    flushTabsToStorage(nextTabs);
+    kvSetSync("lastTab", String(nextCurrent));
+    set({ tabs: nextTabs, currentTab: nextCurrent });
+  },
+
+  moveTab: (fromIndex, toIndex) => {
+    const syncedTabs = withLatestRefs(get().tabs);
+    if (
+      fromIndex === toIndex ||
+      fromIndex < 0 ||
+      toIndex < 0 ||
+      fromIndex >= syncedTabs.length ||
+      toIndex >= syncedTabs.length
+    ) {
+      return;
+    }
+    const nextTabs = [...syncedTabs];
+    const [moved] = nextTabs.splice(fromIndex, 1);
+    nextTabs.splice(toIndex, 0, moved);
+
+    const cur = get().currentTab;
+    let nextCurrent = cur;
+    if (cur === fromIndex) {
+      nextCurrent = toIndex;
+    } else if (fromIndex < cur && cur <= toIndex) {
+      nextCurrent = cur - 1;
+    } else if (toIndex <= cur && cur < fromIndex) {
+      nextCurrent = cur + 1;
+    }
+
     flushTabsToStorage(nextTabs);
     kvSetSync("lastTab", String(nextCurrent));
     set({ tabs: nextTabs, currentTab: nextCurrent });
@@ -348,6 +425,15 @@ export const useAppStore = create<AppState>((set, get) => ({
   flushTabs: () => {
     const syncedTabs = withLatestRefs(get().tabs);
     flushTabsToStorage(syncedTabs);
+  },
+
+  getSerializableTabs: () => {
+    const syncedTabs = withLatestRefs(get().tabs);
+    return syncedTabs.map((t) => ({
+      id: t.id,
+      name: t.name,
+      reference: latestReferenceByTabId.get(t.id) ?? t.reference,
+    }));
   },
 
   jumpTabToReference: (index, ref, highlight = false) => {
@@ -412,10 +498,29 @@ export const useAppStore = create<AppState>((set, get) => ({
     set({ textSize });
   },
 
+  setFontFamily: (fontFamily) => {
+    kvSetSync("fontFamily", fontFamily);
+    set({ fontFamily });
+  },
+
   toggleRotation: () => {
     const next = !get().allowRotation;
     kvSetSync("rotate", next ? "true" : "false");
     set({ allowRotation: next });
+  },
+
+  setTranslation: (translation) => {
+    if (get().translation === translation) {
+      return;
+    }
+    const syncedTabs = withLatestRefs(get().tabs).map((t) => ({
+      ...t,
+      navVersion: t.navVersion + 1,
+      highlightRef: null,
+    }));
+    flushTabsToStorage(syncedTabs);
+    kvSetSync("translation", translation);
+    set({ translation, tabs: syncedTabs });
   },
 
   setShowSearch: (showSearch) => {

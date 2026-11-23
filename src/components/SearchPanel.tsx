@@ -1,8 +1,8 @@
 import { FlashList, type FlashListRef } from "@shopify/flash-list";
-import { useSQLiteContext } from "expo-sqlite";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   Keyboard,
+  Platform,
   Pressable,
   StyleSheet,
   Text,
@@ -13,7 +13,10 @@ import {
   formatVerseCitation,
   parseHumanReference,
 } from "../constants/books";
-import { colors } from "../constants/colors";
+import { colors, uiTokens } from "../constants/colors";
+import { TRANSLATIONS, isApiTranslation } from "../constants/translations";
+import { searchApiBibleAsync } from "../api/apiBibleClient";
+import { useBibleDb } from "../db/BibleDbContext";
 import { searchVersesAsync } from "../db/queries";
 import type {
   AccentColorName,
@@ -26,6 +29,7 @@ import MyButton from "./MyButton";
 interface SearchPanelProps {
   theme: ThemeName;
   color: AccentColorName;
+  embeddedSidebar?: boolean;
   onSelectReference: (
     ref: BibleReference,
     options?: { highlight?: boolean; closeSearch?: boolean }
@@ -73,10 +77,13 @@ function renderTextWithBoldMatches(
 export default function SearchPanel({
   theme,
   color,
+  embeddedSidebar = false,
   onSelectReference,
   onClose,
 }: SearchPanelProps) {
-  const db = useSQLiteContext();
+  const { db, loadedTranslation } = useBibleDb();
+  const isApi = isApiTranslation(loadedTranslation);
+  const translationShortName = TRANSLATIONS[loadedTranslation].shortName;
   const searchInputRef = useRef<TextInput>(null);
   const listRef = useRef<FlashListRef<VerseRow>>(null);
   const requestSeqRef = useRef(0);
@@ -84,6 +91,9 @@ export default function SearchPanel({
   const [searchText, setSearchText] = useState("");
   const [matchedQuery, setMatchedQuery] = useState("");
   const [searchData, setSearchData] = useState<VerseRow[]>([]);
+  const [apiTotalMatches, setApiTotalMatches] = useState<number | null>(null);
+  const [apiSearching, setApiSearching] = useState(false);
+  const [apiSearchError, setApiSearchError] = useState<string | null>(null);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -92,17 +102,34 @@ export default function SearchPanel({
     return () => clearTimeout(timer);
   }, []);
 
+  // Reset search results cleanly when user switches translation
+  useEffect(() => {
+    requestSeqRef.current += 1;
+    setSearchData([]);
+    setMatchedQuery("");
+    setApiTotalMatches(null);
+    setApiSearching(false);
+    setApiSearchError(null);
+  }, [loadedTranslation]);
+
   const quickJump = useMemo(
     () => parseHumanReference(searchText),
     [searchText]
   );
 
+  // Instant live search for offline SQLite translations ONLY (API translations search on explicit submit to conserve quota)
   useEffect(() => {
     const trimmed = searchText.trim();
     if (trimmed.length < 2) {
       requestSeqRef.current += 1;
       setSearchData([]);
       setMatchedQuery("");
+      setApiTotalMatches(null);
+      setApiSearchError(null);
+      return;
+    }
+
+    if (isApi) {
       return;
     }
 
@@ -123,201 +150,387 @@ export default function SearchPanel({
     }, 70);
 
     return () => clearTimeout(timer);
-  }, [db, searchText]);
+  }, [db, isApi, searchText]);
+
+  const runApiKeywordSearch = async (rawQuery: string) => {
+    if (!isApi) return;
+    const trimmed = rawQuery.trim();
+    if (trimmed.length < 2) return;
+    const seq = ++requestSeqRef.current;
+    setApiSearching(true);
+    setApiSearchError(null);
+    try {
+      const res = await searchApiBibleAsync(loadedTranslation, trimmed, 40);
+      if (requestSeqRef.current !== seq) return;
+      setMatchedQuery(trimmed);
+      setSearchData(res.verses);
+      setApiTotalMatches(res.total);
+      setApiSearching(false);
+      if (res.verses.length > 0) {
+        listRef.current?.scrollToOffset({ offset: 0, animated: false });
+      }
+    } catch (err) {
+      if (requestSeqRef.current !== seq) return;
+      setApiSearching(false);
+      setApiSearchError(
+        err instanceof Error
+          ? err.message
+          : `Could not search ${translationShortName}. Check your internet connection.`
+      );
+    }
+  };
 
   const handleSubmit = () => {
     if (quickJump?.hasExplicitNumber) {
       Keyboard.dismiss();
       onSelectReference(quickJump.ref, {
         highlight: quickJump.hasExplicitVerse,
-        closeSearch: true,
+        closeSearch: !embeddedSidebar,
       });
       return;
     }
     Keyboard.dismiss();
+    if (isApi && searchText.trim().length >= 2) {
+      runApiKeywordSearch(searchText);
+    }
   };
 
-  const textColor = colors.bible.text[theme];
+  const ui = uiTokens[theme];
   const accentBorder = colors.bible.color[theme][color][0];
   const accentText = colors.bible.color[theme][color][1];
-  const inactiveBg = colors.tab.tab.inactive[theme];
   const trimmedInput = searchText.trim();
 
   return (
     <View
       style={[
-        styles.container,
-        {
-          backgroundColor: colors.bible.background[theme],
-          borderBottomColor: accentBorder,
-        },
+        embeddedSidebar ? styles.sidebarRoot : styles.drawerContainer,
+        { backgroundColor: ui.bg },
       ]}
     >
-      {/* Live Search Input + Clear Button */}
-      <View style={[styles.inputBox, { backgroundColor: inactiveBg }]}>
-        <TextInput
-          ref={searchInputRef}
-          onSubmitEditing={handleSubmit}
-          returnKeyType="go"
-          placeholder="Search words or reference (e.g. Psalm 23)..."
-          placeholderTextColor="rgb(145,145,145)"
-          style={[styles.input, { color: textColor }]}
-          value={searchText}
-          onChangeText={setSearchText}
-          autoCapitalize="none"
-          autoCorrect={false}
-        />
-        {searchText.length > 0 ? (
+      {/* Sidebar Header (desktop docked mode) */}
+      {embeddedSidebar ? (
+        <View style={[styles.sidebarHeader, { borderBottomColor: ui.border }]}>
+          <Text style={[styles.sidebarHeading, { color: ui.text }]}>
+            Search
+          </Text>
           <Pressable
-            onPress={() => {
-              setSearchText("");
-              searchInputRef.current?.focus();
-            }}
-            hitSlop={10}
-            style={styles.clearButton}
+            onPress={onClose}
+            hitSlop={8}
             accessibilityRole="button"
-            accessibilityLabel="Clear search"
+            accessibilityLabel="Close search"
+            style={({ pressed }) => [
+              styles.closeIconBtn,
+              { backgroundColor: ui.surface, opacity: pressed ? 0.72 : 1 },
+            ]}
           >
-            <Text style={[styles.clearText, { color: textColor }]}>×</Text>
+            <Text style={[styles.closeIconText, { color: ui.text }]}>×</Text>
+          </Pressable>
+        </View>
+      ) : null}
+
+      <View
+        style={embeddedSidebar ? styles.sidebarBody : styles.drawerBody}
+      >
+        {/* Live Search Input + Clear Button */}
+        <View
+          style={[
+            styles.inputBox,
+            { backgroundColor: ui.surface, borderColor: ui.border },
+          ]}
+        >
+          <TextInput
+            ref={searchInputRef}
+            onSubmitEditing={handleSubmit}
+            returnKeyType="go"
+            placeholder="Words or reference (e.g. Psalm 23)…"
+            placeholderTextColor={ui.muted}
+            style={[
+              styles.input,
+              embeddedSidebar && styles.inputSidebar,
+              { color: ui.text },
+            ]}
+            value={searchText}
+            onChangeText={setSearchText}
+            autoCapitalize="none"
+            autoCorrect={false}
+          />
+          {searchText.length > 0 ? (
+            <Pressable
+              onPress={() => {
+                setSearchText("");
+                searchInputRef.current?.focus();
+              }}
+              hitSlop={10}
+              style={styles.clearButton}
+              accessibilityRole="button"
+              accessibilityLabel="Clear search"
+            >
+              <Text style={[styles.clearText, { color: ui.muted }]}>×</Text>
+            </Pressable>
+          ) : null}
+          {isApi && trimmedInput.length >= 2 && !quickJump?.hasExplicitNumber ? (
+            <Pressable
+              onPress={() => {
+                Keyboard.dismiss();
+                runApiKeywordSearch(trimmedInput);
+              }}
+              disabled={apiSearching}
+              style={({ pressed }) => [
+                styles.apiSearchBtn,
+                {
+                  borderColor: accentBorder,
+                  backgroundColor: ui.surfaceRaised,
+                  opacity: apiSearching ? 0.55 : pressed ? 0.75 : 1,
+                },
+              ]}
+            >
+              <Text style={[styles.apiSearchBtnText, { color: accentText }]}>
+                {apiSearching ? "…" : `Search ${translationShortName}`}
+              </Text>
+            </Pressable>
+          ) : null}
+        </View>
+
+        {isApi && apiSearchError ? (
+          <Text style={[styles.noResults, { color: ui.danger }]}>
+            {apiSearchError}
+          </Text>
+        ) : null}
+
+        {isApi && apiSearching ? (
+          <Text style={[styles.noResults, { color: ui.muted }]}>
+            Searching {translationShortName}…
+          </Text>
+        ) : null}
+
+        {isApi &&
+        !apiSearching &&
+        !apiSearchError &&
+        trimmedInput.length >= 2 &&
+        matchedQuery !== trimmedInput &&
+        !quickJump?.hasExplicitNumber ? (
+          <Text style={[styles.apiSearchHint, { color: ui.muted }]}>
+            Press Enter or tap Search {translationShortName} to search online.
+          </Text>
+        ) : null}
+
+        {/* Direct Reference Quick Jump */}
+        {quickJump ? (
+          <Pressable
+            style={({ pressed }) => [
+              styles.quickJumpCard,
+              {
+                backgroundColor: ui.surface,
+                borderColor: accentBorder,
+                opacity: pressed ? 0.78 : 1,
+              },
+            ]}
+            onPress={() => {
+              Keyboard.dismiss();
+              onSelectReference(quickJump.ref, {
+                highlight: quickJump.hasExplicitVerse,
+                closeSearch: !embeddedSidebar,
+              });
+            }}
+          >
+            <Text style={[styles.quickJumpText, { color: ui.text }]}>
+              Jump to{" "}
+              <Text style={[styles.quickJumpHighlight, { color: accentText }]}>
+                {quickJump.label}
+              </Text>
+            </Text>
+            <Text style={[styles.quickJumpArrow, { color: accentText }]}>
+              →
+            </Text>
           </Pressable>
         ) : null}
-      </View>
 
-      {/* Direct Reference Quick Jump */}
-      {quickJump ? (
-        <Pressable
-          style={[
-            styles.quickJumpCard,
-            {
-              backgroundColor: inactiveBg,
-              borderColor: accentBorder,
-            },
-          ]}
-          onPress={() => {
-            Keyboard.dismiss();
-            onSelectReference(quickJump.ref, {
-              highlight: quickJump.hasExplicitVerse,
-              closeSearch: true,
-            });
-          }}
-        >
-          <Text style={[styles.quickJumpText, { color: textColor }]}>
-            Jump to{" "}
-            <Text style={[styles.quickJumpHighlight, { color: accentText }]}>
-              {quickJump.label}
+        {/* Keyword Results */}
+        {searchData.length > 0 ? (
+          <>
+            <Text style={[styles.resultCountText, { color: ui.muted }]}>
+              {isApi && apiTotalMatches && apiTotalMatches > searchData.length
+                ? `Showing ${searchData.length} of ${apiTotalMatches.toLocaleString()} matches in ${translationShortName}`
+                : searchData.length === 1
+                  ? `1 matching verse (${translationShortName})`
+                  : `${searchData.length.toLocaleString()} matching verses (${translationShortName})`}
             </Text>
-          </Text>
-          <Text style={[styles.quickJumpArrow, { color: accentText }]}>→</Text>
-        </Pressable>
-      ) : null}
-
-      {/* Keyword Results */}
-      {searchData.length > 0 ? (
-        <>
-          <Text style={styles.resultCountText}>
-            {searchData.length === 1
-              ? "1 matching verse"
-              : `${searchData.length.toLocaleString()} matching verses`}
-          </Text>
-          <View style={styles.resultsContainer}>
-            <FlashList
-              ref={listRef}
-              data={searchData}
-              keyboardShouldPersistTaps="handled"
-              keyExtractor={(item) =>
-                `${item.book},${item.chapter},${item.verse}`
+            <View
+              style={
+                embeddedSidebar
+                  ? styles.resultsContainerSidebar
+                  : styles.resultsContainerDrawer
               }
-              extraData={{ matchedQuery, theme, color }}
-              renderItem={({ item }) => (
-                <Pressable
-                  style={styles.resultRow}
-                  onPress={() => {
-                    Keyboard.dismiss();
-                    onSelectReference(
+            >
+              <FlashList
+                ref={listRef}
+                data={searchData}
+                keyboardShouldPersistTaps="handled"
+                keyExtractor={(item) =>
+                  `${item.book},${item.chapter},${item.verse}`
+                }
+                extraData={{ matchedQuery, theme, color }}
+                renderItem={({ item }) => (
+                  <Pressable
+                    style={({ pressed }) => [
+                      styles.resultRow,
                       {
-                        book: item.book,
-                        chapter: item.chapter,
-                        verse: item.verse,
+                        borderBottomColor: ui.border,
+                        backgroundColor: pressed ? ui.surface : "transparent",
                       },
-                      { highlight: true, closeSearch: false }
-                    );
-                  }}
-                >
-                  <Text style={[styles.resultVerseText, { color: textColor }]}>
-                    <Text style={[styles.resultCitation, { color: accentText }]}>
-                      {`${formatVerseCitation(
-                        item.book,
-                        item.chapter,
-                        item.verse
-                      )} `}
-                    </Text>
-                    {item.superscription ? (
-                      <Text style={styles.resultSuperscription}>
-                        {renderTextWithBoldMatches(
-                          `${item.superscription} `,
-                          matchedQuery
-                        )}
+                    ]}
+                    onPress={() => {
+                      Keyboard.dismiss();
+                      onSelectReference(
+                        {
+                          book: item.book,
+                          chapter: item.chapter,
+                          verse: item.verse,
+                        },
+                        { highlight: true, closeSearch: false }
+                      );
+                    }}
+                  >
+                    <Text style={[styles.resultVerseText, { color: ui.text }]}>
+                      <Text
+                        style={[styles.resultCitation, { color: accentText }]}
+                      >
+                        {`${formatVerseCitation(
+                          item.book,
+                          item.chapter,
+                          item.verse
+                        )} `}
                       </Text>
-                    ) : null}
-                    <Text>
-                      {renderTextWithBoldMatches(item.text, matchedQuery)}
+                      {item.superscription ? (
+                        <Text style={styles.resultSuperscription}>
+                          {renderTextWithBoldMatches(
+                            `${item.superscription} `,
+                            matchedQuery
+                          )}
+                        </Text>
+                      ) : null}
+                      <Text>
+                        {renderTextWithBoldMatches(item.text, matchedQuery)}
+                      </Text>
                     </Text>
-                  </Text>
-                </Pressable>
-              )}
+                  </Pressable>
+                )}
+              />
+            </View>
+          </>
+        ) : null}
+
+        {searchData.length === 0 &&
+        matchedQuery !== "" &&
+        trimmedInput.length >= 2 &&
+        !quickJump ? (
+          <Text style={[styles.noResults, { color: ui.muted }]}>
+            {`No verses matching "${matchedQuery}".`}
+          </Text>
+        ) : null}
+
+        {embeddedSidebar && trimmedInput.length < 2 && !quickJump ? (
+          <View style={styles.sidebarEmptyHint}>
+            <Text style={[styles.sidebarEmptyTitle, { color: ui.text }]}>
+              Search Scripture
+            </Text>
+            <Text style={[styles.sidebarEmptyCopy, { color: ui.muted }]}>
+              Type a keyword, phrase, or reference such as{" "}
+              <Text style={{ color: accentText, fontWeight: "600" }}>
+                John 3:16
+              </Text>{" "}
+              or{" "}
+              <Text style={{ color: accentText, fontWeight: "600" }}>
+                shepherd
+              </Text>
+              . Clicking any match jumps the active tab without closing search.
+            </Text>
+          </View>
+        ) : null}
+
+        {!embeddedSidebar ? (
+          <View style={styles.closeWrapper}>
+            <MyButton
+              color={accentText}
+              textColor={ui.text}
+              backgroundColor={ui.surface}
+              onPress={onClose}
+              title="Close"
             />
           </View>
-        </>
-      ) : null}
-
-      {searchData.length === 0 &&
-      matchedQuery !== "" &&
-      trimmedInput.length >= 2 &&
-      !quickJump ? (
-        <Text style={[styles.noResults, { color: textColor }]}>
-          {`No verses matching "${matchedQuery}".`}
-        </Text>
-      ) : null}
-
-      <View style={styles.closeWrapper}>
-        <MyButton
-          color={accentText}
-          textColor={textColor}
-          backgroundColor={inactiveBg}
-          onPress={onClose}
-          title="Close"
-        />
+        ) : null}
       </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  drawerContainer: {
     padding: 12,
-    borderBottomWidth: 3,
     height: "auto",
+  },
+  drawerBody: {
+    width: "100%",
+  },
+  sidebarRoot: {
+    flex: 1,
+    flexDirection: "column",
+  },
+  sidebarHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 14,
+    paddingVertical: 11,
+    borderBottomWidth: 1,
+  },
+  sidebarHeading: {
+    fontSize: 18,
+    fontWeight: "700",
+    letterSpacing: -0.2,
+  },
+  closeIconBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  closeIconText: {
+    fontSize: 18,
+    lineHeight: 20,
+    fontWeight: "600",
+  },
+  sidebarBody: {
+    flex: 1,
+    paddingHorizontal: 14,
+    paddingTop: 12,
+    paddingBottom: 10,
   },
   inputBox: {
     flexDirection: "row",
     alignItems: "center",
-    borderRadius: 8,
-    paddingHorizontal: 10,
-    marginBottom: 8,
+    borderRadius: 9,
+    borderWidth: 1,
+    paddingHorizontal: 11,
+    marginBottom: 9,
   },
   input: {
     flex: 1,
-    fontSize: 19,
-    paddingVertical: 8,
+    minWidth: 0,
+    fontSize: 17,
+    paddingVertical: Platform.OS === "web" ? 8 : 7,
+  },
+  inputSidebar: {
+    fontSize: 15.5,
   },
   clearButton: {
     paddingLeft: 8,
     paddingVertical: 4,
   },
   clearText: {
-    fontSize: 24,
-    lineHeight: 24,
-    opacity: 0.65,
+    fontSize: 22,
+    lineHeight: 22,
   },
   quickJumpCard: {
     flexDirection: "row",
@@ -325,51 +538,85 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     paddingVertical: 10,
     paddingHorizontal: 12,
-    borderRadius: 8,
+    borderRadius: 9,
     borderWidth: 1.5,
-    marginBottom: 8,
+    marginBottom: 9,
   },
   quickJumpText: {
-    fontSize: 17,
+    fontSize: 15.5,
     fontWeight: "500",
   },
   quickJumpHighlight: {
     fontWeight: "700",
   },
   quickJumpArrow: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: "700",
   },
   resultCountText: {
     fontSize: 12,
-    color: "rgb(145,145,145)",
-    marginBottom: 4,
+    fontWeight: "600",
+    marginBottom: 6,
   },
-  resultsContainer: {
+  resultsContainerDrawer: {
     height: 270,
   },
+  resultsContainerSidebar: {
+    flex: 1,
+    minHeight: 0,
+  },
   resultRow: {
-    paddingVertical: 7,
+    paddingVertical: 9,
+    paddingHorizontal: 4,
+    borderBottomWidth: StyleSheet.hairlineWidth,
   },
   resultCitation: {
-    fontWeight: "600",
+    fontWeight: "700",
   },
   resultSuperscription: {
     fontStyle: "italic",
     opacity: 0.82,
   },
   resultVerseText: {
-    fontSize: 16,
+    fontSize: 15,
     lineHeight: 22,
   },
   boldMatch: {
-    fontWeight: "900",
+    fontWeight: "800",
   },
   noResults: {
-    paddingVertical: 10,
-    fontSize: 16,
+    paddingVertical: 12,
+    fontSize: 15,
+  },
+  sidebarEmptyHint: {
+    paddingTop: 22,
+    paddingHorizontal: 6,
+    gap: 6,
+  },
+  sidebarEmptyTitle: {
+    fontSize: 15,
+    fontWeight: "600",
+  },
+  sidebarEmptyCopy: {
+    fontSize: 13.5,
+    lineHeight: 20,
   },
   closeWrapper: {
     marginTop: 6,
+  },
+  apiSearchBtn: {
+    marginLeft: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 7,
+    borderWidth: 1.25,
+  },
+  apiSearchBtnText: {
+    fontSize: 13,
+    fontWeight: "700",
+  },
+  apiSearchHint: {
+    fontSize: 13,
+    marginBottom: 8,
   },
 });

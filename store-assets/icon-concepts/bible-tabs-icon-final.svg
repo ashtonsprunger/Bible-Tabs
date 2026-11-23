@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <defs>
+    <linearGradient id="skyPure" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#ECF8FF"/>
+      <stop offset="100%" stop-color="#D4EEFF"/>
+    </linearGradient>
+    <linearGradient id="leftDepth" x1="78%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#FFFFFF"/>
+      <stop offset="100%" stop-color="#E6F2FF"/>
+    </linearGradient>
+    <linearGradient id="rightDepth" x1="0%" y1="0%" x2="22%" y2="0%">
+      <stop offset="0%" stop-color="#E6F2FF"/>
+      <stop offset="100%" stop-color="#FFFFFF"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Soft original sky-blue background -->
+  <rect width="1024" height="1024" fill="url(#skyPure)"/>
+
+  <g transform="translate(0 -6)">
+    <!-- Two sleek, well-proportioned top browser tabs -->
+    <rect x="256" y="246" width="218" height="154" rx="34" fill="#0A58CA"/>
+    <rect x="528" y="266" width="218" height="136" rx="34" fill="#60A5FA"/>
+
+    <!-- Bold open Bible silhouette in original cobalt -->
+    <path d="M512 394 C452 354 336 342 218 354 Q190 358 190 386 L190 726 Q190 754 218 750 C336 736 446 748 512 792 C578 748 688 736 806 750 Q834 754 834 726 L834 386 Q834 358 806 354 C688 342 572 354 512 394 Z" fill="#0A58CA"/>
+
+    <!-- Pure minimal open white pages with soft spine depth -->
+    <path d="M490 432 C436 400 338 390 238 400 L238 700 C338 690 436 700 490 732 Z" fill="url(#leftDepth)"/>
+    <path d="M534 432 C588 400 686 390 786 400 L786 700 C686 690 588 700 534 732 Z" fill="url(#rightDepth)"/>
+  </g>
+</svg>

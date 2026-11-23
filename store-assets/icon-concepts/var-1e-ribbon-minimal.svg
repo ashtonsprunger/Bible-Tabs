@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <defs>
+    <linearGradient id="skySoft" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#ECF8FF"/>
+      <stop offset="100%" stop-color="#D4EEFF"/>
+    </linearGradient>
+    <linearGradient id="leftPageShade" x1="78%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#FFFFFF"/>
+      <stop offset="100%" stop-color="#E6F2FF"/>
+    </linearGradient>
+    <linearGradient id="rightPageShade" x1="0%" y1="0%" x2="22%" y2="0%">
+      <stop offset="0%" stop-color="#E6F2FF"/>
+      <stop offset="100%" stop-color="#FFFFFF"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Soft sky-blue original palette background -->
+  <rect width="1024" height="1024" fill="url(#skySoft)"/>
+
+  <!-- Two sleek, well-proportioned top browser tabs -->
+  <rect x="256" y="250" width="218" height="154" rx="34" fill="#0A58CA"/>
+  <rect x="528" y="270" width="218" height="136" rx="34" fill="#60A5FA"/>
+
+  <!-- Bold open Bible silhouette in original cobalt -->
+  <path d="M512 398 C452 358 336 346 218 358 Q190 362 190 390 L190 730 Q190 758 218 754 C336 740 446 752 512 796 C578 752 688 740 806 754 Q834 758 834 730 L834 390 Q834 362 806 358 C688 346 572 358 512 398 Z" fill="#0A58CA"/>
+
+  <!-- Gently shaded open white pages -->
+  <path d="M490 436 C436 404 338 394 238 404 L238 704 C338 694 436 704 490 736 Z" fill="url(#leftPageShade)"/>
+  <path d="M534 436 C588 404 686 394 786 404 L786 704 C686 694 588 704 534 736 Z" fill="url(#rightPageShade)"/>
+
+  <!-- Clean swallowtail Bible bookmark ribbon on the right page -->
+  <path d="M652 396 L720 396 L720 558 L686 528 L652 558 Z" fill="#0A58CA"/>
+</svg>

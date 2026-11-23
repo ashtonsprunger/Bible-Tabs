@@ -5,6 +5,7 @@ interface MyButtonProps {
   title: string;
   color: string;
   backgroundColor: string;
+  borderColor?: string;
   textColor?: string;
   onPress: () => void;
 }
@@ -13,11 +14,20 @@ export default function MyButton({
   title,
   color,
   backgroundColor,
+  borderColor,
   onPress,
 }: MyButtonProps) {
   return (
     <Pressable
-      style={[styles.button, { backgroundColor }]}
+      style={({ pressed }) => [
+        styles.button,
+        {
+          backgroundColor,
+          borderColor: borderColor ?? "transparent",
+          borderWidth: borderColor ? 1 : 0,
+          opacity: pressed ? 0.78 : 1,
+        },
+      ]}
       onPress={onPress}
     >
       <Text style={[styles.text, { color }]}>{title}</Text>
@@ -27,14 +37,15 @@ export default function MyButton({
 
 const styles = StyleSheet.create({
   button: {
-    borderRadius: 4,
+    borderRadius: 10,
     width: "100%",
-    padding: 6,
-    paddingHorizontal: 6,
+    paddingVertical: 11,
+    paddingHorizontal: 14,
   },
   text: {
-    fontSize: 20,
+    fontSize: 16,
     textAlign: "center",
-    fontWeight: "500",
+    fontWeight: "600",
+    letterSpacing: 0.1,
   },
 });

@@ -18,6 +18,7 @@ yarn-error.*
 *.key
 *.mobileprovision
 *.orig.*
+keystore.properties
 
 # OS
 .DS_Store

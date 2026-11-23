@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <defs>
+    <linearGradient id="cobaltBg" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#1467E0"/>
+      <stop offset="100%" stop-color="#0844A0"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Bold inverted original cobalt background -->
+  <rect width="1024" height="1024" fill="url(#cobaltBg)"/>
+
+  <!-- Sleek top tabs: sky-blue (#E2F5FF) active + translucent bright blue second tab -->
+  <rect x="256" y="250" width="218" height="154" rx="34" fill="#E2F5FF"/>
+  <rect x="528" y="270" width="218" height="136" rx="34" fill="#60A5FA"/>
+
+  <!-- Subtle sky-blue back cover rim peeking neatly below the white pages -->
+  <path d="M512 430 C452 392 336 382 216 394 Q190 398 190 426 L190 744 Q190 770 218 766 C336 752 446 764 512 806 C578 764 688 752 806 766 Q834 770 834 744 L834 426 Q834 398 808 394 C688 382 572 392 512 430 Z" fill="#93C5FD" opacity="0.55"/>
+
+  <!-- Crisp pure-white open pages with bold cobalt center spine gap -->
+  <path d="M490 412 C434 374 332 362 222 374 Q202 377 202 398 L202 712 Q202 730 222 728 C332 716 434 726 490 762 Z" fill="#FFFFFF"/>
+  <path d="M534 412 C590 374 692 362 802 374 Q822 377 822 398 L822 712 Q822 730 802 728 C692 716 590 726 534 762 Z" fill="#FFFFFF"/>
+</svg>

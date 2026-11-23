@@ -1,0 +1,52 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <defs>
+    <linearGradient id="bgB" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#1E293B"/>
+      <stop offset="100%" stop-color="#0F172A"/>
+    </linearGradient>
+    <linearGradient id="leftPageB" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#FBF8F1"/>
+      <stop offset="100%" stop-color="#EFE8DA"/>
+    </linearGradient>
+    <linearGradient id="rightPageB" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#F3EDE0"/>
+      <stop offset="100%" stop-color="#FFFDF8"/>
+    </linearGradient>
+    <filter id="shadowB" x="-15%" y="-15%" width="130%" height="135%">
+      <feDropShadow dx="0" dy="20" stdDeviation="24" flood-color="#000000" flood-opacity="0.45"/>
+    </filter>
+  </defs>
+
+  <!-- Deep Slate Navy Background -->
+  <rect width="1024" height="1024" fill="url(#bgB)"/>
+
+  <!-- Three colorful rounded index tabs rising out of the Bible -->
+  <rect x="260" y="218" width="144" height="128" rx="28" fill="#3B82F6"/>
+  <rect x="440" y="200" width="144" height="146" rx="28" fill="#F59E0B"/>
+  <rect x="620" y="218" width="144" height="128" rx="28" fill="#10B981"/>
+
+  <!-- Open Bible Pages -->
+  <g filter="url(#shadowB)">
+    <!-- Outer cover base -->
+    <rect x="156" y="330" width="712" height="456" rx="42" fill="#334155"/>
+    <!-- Left page -->
+    <path d="M512 346 C440 302 318 292 192 314 L192 738 C318 716 440 724 512 768 Z" fill="url(#leftPageB)"/>
+    <!-- Right page -->
+    <path d="M512 346 C584 302 706 292 832 314 L832 738 C706 716 584 724 512 768 Z" fill="url(#rightPageB)"/>
+    <!-- Spine crease -->
+    <line x1="512" y1="346" x2="512" y2="768" stroke="#CBD5E1" stroke-width="8"/>
+  </g>
+
+  <!-- Clean subtle Scripture lines (with one subtle yellow highlight bar!) -->
+  <rect x="252" y="424" width="196" height="22" rx="11" fill="#CBD5E1"/>
+  <rect x="252" y="476" width="196" height="26" rx="8" fill="#FDE68A"/>
+  <rect x="252" y="532" width="174" height="22" rx="11" fill="#CBD5E1"/>
+  <rect x="252" y="584" width="188" height="22" rx="11" fill="#CBD5E1"/>
+  <rect x="252" y="636" width="138" height="22" rx="11" fill="#CBD5E1"/>
+
+  <rect x="576" y="424" width="196" height="22" rx="11" fill="#CBD5E1"/>
+  <rect x="576" y="478" width="180" height="22" rx="11" fill="#CBD5E1"/>
+  <rect x="576" y="532" width="196" height="22" rx="11" fill="#CBD5E1"/>
+  <rect x="576" y="584" width="164" height="22" rx="11" fill="#CBD5E1"/>
+  <rect x="576" y="636" width="186" height="22" rx="11" fill="#CBD5E1"/>
+</svg>

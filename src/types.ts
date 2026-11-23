@@ -12,10 +12,54 @@ export type AccentColorName =
 
 export type TextSizeOption = "15" | "18" | "24" | "32" | "40";
 
+export type FontFamilyOption = "serif" | "sans";
+
+export type LocalTranslationId = "bsb" | "kjv" | "web" | "asv";
+
+export type ApiTranslationId = "niv" | "nlt" | "nasb";
+
+export type TranslationId = LocalTranslationId | ApiTranslationId;
+
+export type HighlightColor =
+  | "yellow"
+  | "green"
+  | "blue"
+  | "pink"
+  | "purple"
+  | "orange";
+
 export interface BibleReference {
   book: number; // 0..65
   chapter: number; // 1..N
   verse: number; // 1..M
+}
+
+export interface HighlightRecord {
+  book: number;
+  chapter: number;
+  verse: number;
+  color: HighlightColor;
+  createdAt: number;
+  updatedAt: number;
+}
+
+export interface NoteRecord {
+  id: string;
+  book: number;
+  chapter: number;
+  startVerse: number;
+  endVerse: number;
+  body: string;
+  createdAt: number;
+  updatedAt: number;
+}
+
+export interface BackupPayload {
+  schemaVersion: 1;
+  exportedAt: number;
+  highlights: HighlightRecord[];
+  notes: NoteRecord[];
+  tabs?: Array<{ id?: string; name: string; reference: string }>;
 }
 
 /**
@@ -92,9 +136,20 @@ export interface VerseRow {
   footnotes: string | null;
 }
 
+export interface NoteEditorParams {
+  noteId?: string;
+  book: number;
+  chapter: number;
+  startVerse: number;
+  endVerse: number;
+  versePreview?: string;
+}
+
 export type RootStackParamList = {
   Home: undefined;
   TabModal: undefined;
   Settings: undefined;
   Version: undefined;
+  Notebook: undefined;
+  NoteEditor: NoteEditorParams;
 };

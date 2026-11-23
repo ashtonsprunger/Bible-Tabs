@@ -1,14 +1,16 @@
 {
   "name": "bible-tabs",
-  "version": "5.1.0",
+  "version": "5.2.0",
   "main": "index.ts",
   "scripts": {
     "start": "expo start",
-    "android": "expo start --android",
-    "ios": "expo start --ios",
+    "android": "expo run:android",
+    "ios": "expo run:ios",
     "web": "expo start --web",
     "typecheck": "tsc --noEmit",
-    "build:db": "node --experimental-sqlite scripts/build-bible-db.mjs"
+    "build:db": "node --experimental-sqlite scripts/build-bible-db.mjs bsb",
+    "build:dbs": "node --experimental-sqlite scripts/build-bible-db.mjs",
+    "build:web": "expo export --platform web && node scripts/sync-web-site.mjs"
   },
   "dependencies": {
     "@react-native-async-storage/async-storage": "2.2.0",
